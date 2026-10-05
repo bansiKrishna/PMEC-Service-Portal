@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8" />
+    <style>
+        @page { size: A4; margin: 30px; }
+        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; }
+        .certificate { border: 3px solid #222; padding: 45px; min-height: 850px; }
+        .college-name { text-align: center; font-size: 24px; font-weight: bold; }
+        .title { text-align: center; font-size: 28px; font-weight: bold; margin-top: 50px; }
+        .content { margin-top: 50px; font-size: 17px; line-height: 2; text-align: justify; }
+        .certificate-number { text-align: left; margin-top: 30px; }
+        .date { margin-top: 20px; }
+        .signature { margin-top: 100px; text-align: right; }
+        .signature img { width: 160px; height: auto; }
+    </style>
+</head>
+<body>
+<div class="certificate">
+    <div class="college-name">PARALA MAHARAJA ENGINEERING COLLEGE</div>
+    <div style="text-align:center;">Berhampur, Odisha</div>
+    <div class="title">BONAFIDE CERTIFICATE</div>
+    <div class="certificate-number">Certificate No: <strong th:text="${certificateNumber}">PMEC-BONAFIDE-2026-000001</strong></div>
+    <div class="date">Date: <strong th:text="${issueDate}">01-10-2026</strong></div>
+    <div class="content">
+        This is to certify that <strong th:text="${studentName}">Student Name</strong>
+        bearing Roll Number <strong th:text="${rollNumber}">2301109123</strong> is a bonafide student of
+        <strong th:text="${department}">Computer Science and Engineering</strong> of this institution.
+        The student is currently studying in semester <strong th:text="${semester}">7</strong>
+        during the academic year <strong th:text="${academicYear}">2026-27</strong>.
+        This certificate is issued on request of the student for
+        <strong th:text="${reason}">official purpose</strong>.
+    </div>
+    <div class="signature">
+        <img th:src="${principalSignature}" alt="Principal Signature" />
+        <br /><br />
+        <strong>PRINCIPAL</strong>
+        <br />
+        Parala Maharaja Engineering College
+    </div>
+</div>
+</body>
+</html>
