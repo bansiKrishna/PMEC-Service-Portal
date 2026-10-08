@@ -37,46 +37,91 @@ public class SecurityConfig {
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
+
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOriginPatterns(List.of(
-                "http://localhost:*",
-                "http://127.0.0.1:*"
-        ));
-        configuration.setAllowedMethods(List.of(
-                "GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"
-        ));
-        configuration.setAllowedHeaders(List.of("*"));
+
+        configuration.setAllowedOriginPatterns(
+                List.of(
+                        "http://localhost:*",
+                        "http://127.0.0.1:*"
+                )
+        );
+
+        configuration.setAllowedMethods(
+                List.of(
+                        "GET",
+                        "POST",
+                        "PUT",
+                        "PATCH",
+                        "DELETE",
+                        "OPTIONS"
+                )
+        );
+
+        configuration.setAllowedHeaders(
+                List.of("*")
+        );
+
         configuration.setAllowCredentials(true);
 
-        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
-        source.registerCorsConfiguration("/**", configuration);
+        UrlBasedCorsConfigurationSource source =
+                new UrlBasedCorsConfigurationSource();
+
+        source.registerCorsConfiguration(
+                "/**",
+                configuration
+        );
+
         return source;
     }
 
     @Bean
     public AuthenticationProvider authenticationProvider() {
-        DaoAuthenticationProvider authProvider = new DaoAuthenticationProvider(userDetailsService);
+
+        DaoAuthenticationProvider authProvider =
+                new DaoAuthenticationProvider(userDetailsService);
+
         authProvider.setPasswordEncoder(passwordEncoder());
+
         return authProvider;
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception {
+    public AuthenticationManager authenticationManager(
+            AuthenticationConfiguration config
+    ) throws Exception {
+
         return config.getAuthenticationManager();
     }
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http)
-            throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http
+    ) throws Exception {
 
         http
+
+                // =========================
+                // CORS
+                // =========================
+
                 .cors(cors ->
-                        cors.configurationSource(corsConfigurationSource())
+                        cors.configurationSource(
+                                corsConfigurationSource()
+                        )
                 )
+
+                // =========================
+                // CSRF
+                // =========================
 
                 .csrf(csrf ->
                         csrf.disable()
                 )
+
+                // =========================
+                // SESSION
+                // =========================
 
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(
@@ -84,53 +129,74 @@ public class SecurityConfig {
                         )
                 )
 
+                // =========================
+                // AUTHORIZATION
+                // =========================
+
                 .authorizeHttpRequests(auth -> auth
 
-                        .requestMatchers(HttpMethod.OPTIONS, "/**")
+                        // CORS preflight
+                        .requestMatchers(
+                                HttpMethod.OPTIONS,
+                                "/**"
+                        )
                         .permitAll()
 
                         // =========================
-                        // PUBLIC APIs
+                        // OTP APIs
+                        // =========================
+
+                        .requestMatchers(
+                                "/api/auth/otp/**"
+                        )
+                        .permitAll()
+
+                        // =========================
+                        // PUBLIC AUTH APIs
                         // =========================
 
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/auth/register",
                                 "/api/auth/login"
-                        ).permitAll()
-
+                        )
+                        .permitAll()
 
                         // =========================
                         // ADMIN APIs
                         // =========================
 
-                        .requestMatchers("/api/admin/**")
+                        .requestMatchers(
+                                "/api/admin/**"
+                        )
                         .hasRole("ADMIN")
-
 
                         // =========================
                         // DSW APIs
                         // =========================
 
-                        .requestMatchers("/api/dsw/**")
+                        .requestMatchers(
+                                "/api/dsw/**"
+                        )
                         .hasRole("DSW")
-
 
                         // =========================
                         // PRINCIPAL APIs
                         // =========================
 
-                        .requestMatchers("/api/principal/**")
-                        .hasAuthority("ROLE_PRINCIPAL")
-
+                        .requestMatchers(
+                                "/api/principal/**"
+                        )
+                        .hasRole("PRINCIPAL")
 
                         // =========================
                         // LIBRARY APIs
                         // =========================
 
-                        .requestMatchers("/api/library/**")
+                        .requestMatchers(
+                                "/api/library/**"
+                        )
                         .hasRole("LIBRARIAN")
-
 
                         // =========================
                         // EVERYTHING ELSE
@@ -140,7 +206,17 @@ public class SecurityConfig {
                         .authenticated()
                 )
 
-                .authenticationProvider(authenticationProvider())
+                // =========================
+                // AUTHENTICATION PROVIDER
+                // =========================
+
+                .authenticationProvider(
+                        authenticationProvider()
+                )
+
+                // =========================
+                // JWT FILTER
+                // =========================
 
                 .addFilterBefore(
                         jwtAuthenticationFilter,

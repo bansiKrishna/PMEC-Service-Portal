@@ -1,7 +1,17 @@
 spring:
   application:
     name: College-Service-Portal
-
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: ${MAIL_USERNAME}
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
   # ========================================
   # PostgreSQL
   # ========================================
@@ -52,4 +62,4 @@ jwt:
 # ========================================
 college:
   email:
-    domain: "@pmec.ac.in"
+    domain: "pmec.ac.in"
