@@ -2,7 +2,8 @@ import axios from 'axios';
 import { toast } from 'sonner';
 import { useAuthStore } from '../store/authStore';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 export const apiClient = axios.create({
   baseURL: BASE_URL,
@@ -29,9 +30,10 @@ apiClient.interceptors.response.use(
   (error) => {
     if (!error.response) {
       toast.error('Network Error', {
-        description: 'Unable to connect to the PMEC server. Please verify your connection or ensure backend is running at http://localhost:8080.',
-      });
-      return Promise.reject(error);
+  description: import.meta.env.DEV
+    ? 'Unable to connect to the PMEC server. Ensure the backend is running at http://localhost:8080.'
+    : 'Unable to connect to the PMEC server. Please try again later.',
+});
     }
 
     const { status, data } = error.response;
