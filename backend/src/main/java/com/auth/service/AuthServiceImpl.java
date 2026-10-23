@@ -5,6 +5,7 @@ import com.auth.dto.LoginResponse;
 import com.auth.dto.RegisterRequest;
 import com.auth.dto.RegisterResponse;
 import com.auth.dto.ChangePasswordRequest;
+import com.auth.repository.OtpVerificationRepository;
 import com.security.JwtService;
 import com.user.entity.Role;
 import com.user.entity.User;
@@ -25,6 +26,7 @@ public class AuthServiceImpl implements AuthService {
     private String collegeDomain;
 
     private final UserRepository userRepository;
+    private final OtpVerificationRepository otpVerificationRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
@@ -34,6 +36,13 @@ public class AuthServiceImpl implements AuthService {
 
         String email = normalizeEmail(request.email());
         validateCollegeEmail(email);
+
+        boolean isEmailVerified = otpVerificationRepository.findTopByEmailOrderByIdDesc(email)
+                .map(verification -> Boolean.TRUE.equals(verification.getVerified()))
+                .orElse(false);
+        if (!isEmailVerified) {
+            throw new RuntimeException("Verify your college email before registering");
+        }
 
         if (userRepository.existsByEmail(email)) {
             throw new RuntimeException("Email already registered");

@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { toast } from 'sonner';
-import { UserPlus, Mail, Lock, User, Hash, BookOpen, Layers, Loader2, Eye, EyeOff } from 'lucide-react';
+import { UserPlus, Mail, Lock, User, Hash, BookOpen, Layers, Loader2, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
 import { authApi } from '../../api/authApi';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
@@ -29,6 +29,15 @@ type RegisterFormData = z.infer<typeof registerSchema>;
 export const RegisterPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isSendingOtp, setIsSendingOtp] = useState(false);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [otpRequestedEmail, setOtpRequestedEmail] = useState<string | null>(null);
+  const [otp, setOtp] = useState('');
+  const [verifiedEmail, setVerifiedEmail] = useState<string | null>(null);
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [otpErrorEmail, setOtpErrorEmail] = useState<string | null>(null);
+  const [resendSeconds, setResendSeconds] = useState(0);
+  const [cooldownEmail, setCooldownEmail] = useState<string | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
 
   const navigate = useNavigate();
@@ -36,6 +45,7 @@ export const RegisterPage: React.FC = () => {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -49,23 +59,90 @@ export const RegisterPage: React.FC = () => {
     },
   });
 
+  const email = useWatch({ control, name: 'email' });
+  const normalizedEmail = email?.trim().toLowerCase() ?? '';
+  const isEmailVerified = verifiedEmail === normalizedEmail && normalizedEmail.length > 0;
+  const otpRequested = otpRequestedEmail === normalizedEmail;
+  const visibleOtpError = otpErrorEmail === normalizedEmail ? otpError : null;
+  const currentResendSeconds = cooldownEmail === normalizedEmail ? resendSeconds : 0;
+
+  useEffect(() => {
+    if (resendSeconds === 0) return;
+    const timer = window.setTimeout(() => setResendSeconds((seconds) => seconds - 1), 1000);
+    return () => window.clearTimeout(timer);
+  }, [resendSeconds]);
+
+  const getErrorMessage = (error: unknown, fallback: string): string => {
+    if (error && typeof error === 'object' && 'response' in error) {
+      const responseData = (error as { response?: { data?: { error?: string; message?: string } } }).response?.data;
+      return responseData?.error || responseData?.message || fallback;
+    }
+    return fallback;
+  };
+
+  const onSendOtp = async () => {
+    const validEmail = registerSchema.shape.email.safeParse(email?.trim());
+    if (!validEmail.success) {
+      setOtpError(validEmail.error.issues[0]?.message || 'Enter a valid college email address.');
+      setOtpErrorEmail(normalizedEmail);
+      return;
+    }
+
+    setIsSendingOtp(true);
+    setOtpError(null);
+    setOtpErrorEmail(normalizedEmail);
+    try {
+      await authApi.sendOtp(normalizedEmail);
+      setOtpRequestedEmail(normalizedEmail);
+      setResendSeconds(60);
+      setCooldownEmail(normalizedEmail);
+      setOtp('');
+    } catch (error: unknown) {
+      setOtpError(getErrorMessage(error, 'Unable to send the OTP. Please try again.'));
+      setOtpErrorEmail(normalizedEmail);
+    } finally {
+      setIsSendingOtp(false);
+    }
+  };
+
+  const onVerifyOtp = async () => {
+    if (!/^\d{6}$/.test(otp)) {
+      setOtpError('Enter the 6-digit OTP sent to your email.');
+      setOtpErrorEmail(normalizedEmail);
+      return;
+    }
+
+    setIsVerifyingOtp(true);
+    setOtpError(null);
+    setOtpErrorEmail(normalizedEmail);
+    try {
+      await authApi.verifyOtp(normalizedEmail, otp);
+      setVerifiedEmail(normalizedEmail);
+      setOtpError(null);
+    } catch (error: unknown) {
+      setOtpError(getErrorMessage(error, 'The OTP is incorrect or expired. Request a new OTP and try again.'));
+      setOtpErrorEmail(normalizedEmail);
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
   const onSubmit = async (data: RegisterFormData) => {
+    if (verifiedEmail !== data.email.trim().toLowerCase()) {
+      setApiError('Verify your college email before registering.');
+      return;
+    }
+
     setIsLoading(true);
     setApiError(null);
     try {
-      const response = await authApi.register(data);
+      const response = await authApi.register({ ...data, email: data.email.trim().toLowerCase() });
       toast.success('Registration Successful', {
         description: response.message || 'Your account has been created. Please sign in.',
       });
       navigate('/login');
     } catch (err: unknown) {
-      const message =
-        err && typeof err === 'object' && 'response' in err
-          ? (err as { response?: { data?: { error?: string; message?: string } } }).response?.data?.error ||
-            (err as { response?: { data?: { error?: string; message?: string } } }).response?.data?.message ||
-            'Registration failed. Make sure your email ends with @pmec.ac.in'
-          : 'Unable to connect to server. Please try again.';
-      setApiError(message);
+      setApiError(getErrorMessage(err, 'Registration failed. Make sure your email ends with @pmec.ac.in'));
     } finally {
       setIsLoading(false);
     }
@@ -109,6 +186,48 @@ export const RegisterPage: React.FC = () => {
             <Input id="email" type="email" placeholder="name.21cse@pmec.ac.in" className="pl-9 h-10" {...register('email')} />
           </div>
           {errors.email && <p className="text-xs text-red-600">{errors.email.message}</p>}
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            {isEmailVerified ? (
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600" role="status">
+                <CheckCircle2 className="h-4 w-4" /> Email Verified
+              </span>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={onSendOtp}
+                disabled={isSendingOtp || isVerifyingOtp || currentResendSeconds > 0}
+              >
+                {isSendingOtp ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+                {isSendingOtp ? 'Sending OTP...' : currentResendSeconds > 0 ? `Resend OTP in ${currentResendSeconds}s` : otpRequested ? 'Resend OTP' : 'Send OTP'}
+              </Button>
+            )}
+          </div>
+          {otpRequested && !isEmailVerified && (
+            <div className="space-y-2 pt-1">
+              <Label htmlFor="otp" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+                Email OTP
+              </Label>
+              <div className="flex gap-2">
+                <Input
+                  id="otp"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  placeholder="6-digit code"
+                  value={otp}
+                  onChange={(event) => setOtp(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                  className="h-9"
+                />
+                <Button type="button" onClick={onVerifyOtp} disabled={isVerifyingOtp || isSendingOtp}>
+                  {isVerifyingOtp ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+                  Verify OTP
+                </Button>
+              </div>
+            </div>
+          )}
+          {visibleOtpError && <p className="text-xs text-red-600" role="alert">{visibleOtpError}</p>}
         </div>
 
         {/* Roll + Semester */}
@@ -164,7 +283,7 @@ export const RegisterPage: React.FC = () => {
           {errors.password && <p className="text-xs text-red-600">{errors.password.message}</p>}
         </div>
 
-        <Button type="submit" className="w-full h-10 font-semibold mt-1" disabled={isLoading}>
+        <Button type="submit" className="w-full h-10 font-semibold mt-1" disabled={isLoading || !isEmailVerified}>
           {isLoading ? (
             <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Creating account...</>
           ) : (

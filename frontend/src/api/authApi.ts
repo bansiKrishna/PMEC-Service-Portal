@@ -12,6 +12,20 @@ export const authApi = {
     return response.data;
   },
 
+  sendOtp: async (email: string): Promise<string> => {
+    const response = await apiClient.post<string>('/api/auth/otp/send', null, {
+      params: { email },
+    });
+    return response.data;
+  },
+
+  verifyOtp: async (email: string, otp: string): Promise<string> => {
+    const response = await apiClient.post<string>('/api/auth/otp/verify', null, {
+      params: { email, otp },
+    });
+    return response.data;
+  },
+
   changePassword: async (data: ChangePasswordRequest): Promise<{ message: string }> => {
     const response = await apiClient.post<{ message: string }>('/api/auth/change-password', data);
     return response.data;

@@ -10,4 +10,5 @@ public interface OtpVerificationRepository
         extends JpaRepository<OtpVerification , Long> {
 
     Optional<OtpVerification> findTopByEmailOrderByIdDesc(String email);
+
 }

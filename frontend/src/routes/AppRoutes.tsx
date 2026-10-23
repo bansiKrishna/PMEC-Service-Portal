@@ -16,6 +16,7 @@ import { AdminDashboard } from "../pages/admin/AdminDashboard";
 import { StaffManagementPage } from "../pages/admin/StaffManagementPage";
 import { CertificateTemplatesPage } from "../pages/admin/CertificateTemplatesPage";
 import { AdminSettingsPage } from "../pages/admin/AdminSettingsPage";
+import { EmailServiceSettingsPage } from "../pages/admin/EmailServiceSettingsPage";
 import SemesterRegistrationManagementPage from "../pages/admin/SemesterRegistrationManagementPage";
 
 // Student Pages
@@ -102,6 +103,14 @@ export const AppRoutes: React.FC = () => {
           element={
             <RoleGuard allowedRoles={["ADMIN"]}>
               <AdminSettingsPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/admin/email-settings"
+          element={
+            <RoleGuard allowedRoles={["ADMIN"]}>
+              <EmailServiceSettingsPage />
             </RoleGuard>
           }
         />

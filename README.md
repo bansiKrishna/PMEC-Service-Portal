@@ -35,7 +35,7 @@ The system is designed around secure authentication, role-based authorization, s
 
 ### 🔐 Authentication & Security
 
-- College email-based student registration
+- College email-based student registration with email OTP verification
 - JWT-based authentication
 - Spring Security integration
 - Role-based authorization
@@ -72,6 +72,7 @@ System administrators can:
 - Upload e-signatures
 - Configure certificate generation
 - Manage system-level settings
+- Configure the Gmail account used for portal email and send a test message
 
 ### 🏛️ Role-Based Workflow
 
@@ -429,36 +430,64 @@ components.
 
 | File/folder | Purpose |
 | --- | --- |
-| `backend/src/main/resources/application.yaml` | Server, PostgreSQL, email, JWT, and college-email configuration. Values such as `DB_PASSWORD`, `JWT_SECRET`, `MAIL_USERNAME`, and `MAIL_PASSWORD` are read from environment variables. |
+| `backend/src/main/resources/application.yaml` | Server, PostgreSQL, JWT, and college-email configuration. Values such as `SUPABASE_DB_PASSWORD` and `JWT_SECRET` are read from environment variables. |
 | `backend/src/main/resources/bonafide-template.html` | Default HTML certificate template copied into local storage at startup if none is active. |
 | `backend/src/main/resources/db/migration/V1__add_email_verification.sql` | Flyway database migration adding email-verification-related schema. |
 | `backend/src/main/resources/db/migration/V2__remove_email_otp_columns.sql` | Flyway migration removing older OTP-related user columns. |
+| `backend/src/main/resources/db/migration/V4__add_dynamic_email_service_settings.sql` | Adds encrypted admin-managed Gmail settings and the OTP resend timestamp. |
 | `backend/src/test/java/com/collegeServicePortal/College/Service/Portal/CollegeServicePortalApplicationTests.java` | Backend application test; more focused workflow/service tests can be added alongside it. |
 
 ## Run it locally
 
-You need Node.js/npm, Java 21, and PostgreSQL. The backend configuration currently
-points to a PostgreSQL server on `localhost:5432` and database `postgres`; adjust
-the local configuration/environment if your database differs.
+You need Node.js/npm, Java 21, and a PostgreSQL database. Configure the backend
+connection values in `backend/.env`, which is excluded by `.gitignore`. Spring
+Boot imports this properties-format file when the backend starts from its
+directory; a plain `.env` file is not loaded automatically by Spring Boot.
 
-1. Start PostgreSQL and create/configure a local database user/password.
-2. In a PowerShell terminal, set the backend's required environment variables
-   (`DB_PASSWORD`, `JWT_SECRET`, `MAIL_USERNAME`, and `MAIL_PASSWORD`) without
-   saving real values in Git. `JWT_SECRET` must be a Base64-encoded signing key.
-3. Start the backend:
+Set these variables in `backend/.env` using values from your Supabase project:
+
+- `SUPABASE_DB_URL` — full JDBC URL in the form
+  `jdbc:postgresql://HOST:PORT/DATABASE`, including Supabase's required SSL
+  options from the selected connection method.
+- `SUPABASE_DB_USERNAME`
+- `SUPABASE_DB_PASSWORD`
+- `JWT_SECRET` — Base64-encoded signing key.
+- `EMAIL_SETTINGS_ENCRYPTION_KEY` — Base64-encoded random 32-byte key. Keep it
+  outside the database and do not change it after email settings have been saved.
+
+Generate the email encryption key in PowerShell without printing or storing any
+other credentials:
+
+```powershell
+$keyBytes = New-Object byte[] 32
+[Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($keyBytes)
+[Convert]::ToBase64String($keyBytes)
+```
+
+Alternatively, set or override these values as environment variables in the
+PowerShell session used to run the backend. Environment variables take
+precedence over values imported from `backend/.env`.
+
+1. In PowerShell, start the backend from the backend directory:
 
    ```powershell
-   cd backend
+   Set-Location "E:\PMEC service Portal\backend"
    .\mvnw.cmd spring-boot:run
    ```
 
-4. In another terminal, start the frontend:
+2. In another terminal, start the frontend:
 
    ```powershell
    cd frontend
    npm ci
    npm run dev
    ```
+
+After signing in as an administrator, open **Email Service Settings** and enter
+a Gmail address and its Google App Password. Gmail SMTP uses `smtp.gmail.com`,
+port `587`, authentication, and STARTTLS. The email App Password is encrypted
+with `EMAIL_SETTINGS_ENCRYPTION_KEY` in the database and is never returned by
+the API. The Flyway migration creates the settings table automatically.
 
 The frontend defaults to the backend at `http://localhost:8080`. To use another
 backend URL, set `VITE_API_BASE_URL` for the Vite frontend environment. Useful

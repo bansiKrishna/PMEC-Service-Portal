@@ -16,6 +16,7 @@ const PAGE_TITLES: Record<string, { title: string }> = {
   "/admin/staff": { title: "Staff Management" },
   "/admin/certificate-templates": { title: "Certificate Templates" },
   "/admin/settings": { title: "System Settings" },
+  "/admin/email-settings": { title: "Email Service Settings" },
 
   "/student/dashboard": { title: "Dashboard" },
   "/student/bonafide": { title: "Apply for Bonafide" },

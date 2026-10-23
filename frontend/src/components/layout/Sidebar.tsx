@@ -36,6 +36,7 @@ import {
   CalendarCheck,
   Wallet,
   Settings2,
+  Mail,
   ChartNoAxesCombined,
   // Building2,
 } from "lucide-react";
@@ -220,6 +221,11 @@ const roleNavGroups: Record<string, NavGroup[]> = {
           label: "System Settings",
           path: "/admin/settings",
           icon: Settings2,
+        },
+        {
+          label: "Email Service Settings",
+          path: "/admin/email-settings",
+          icon: Mail,
         },
         {
           label: "Semester Registration",

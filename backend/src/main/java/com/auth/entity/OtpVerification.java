@@ -25,5 +25,6 @@ public class OtpVerification {
     private String otp;
     private LocalDateTime expiresAt;
     private Boolean verified;
+    private LocalDateTime createdAt;
 
 }
