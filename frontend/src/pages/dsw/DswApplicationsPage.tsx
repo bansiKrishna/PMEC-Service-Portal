@@ -10,10 +10,10 @@ import {
   UserRound,
   FileText,
   GraduationCap,
-  CalendarDays,
-  Building2,
-  House,
-  Hash,
+  // CalendarDays,
+  // Building2,
+  // House,
+  // Hash,
 } from "lucide-react";
 
 import { dswApi } from "../../api/dswApi";
