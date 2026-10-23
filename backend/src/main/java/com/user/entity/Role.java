@@ -6,5 +6,6 @@ public enum Role {
     DSW,
     LIBRARIAN,
     PRINCIPAL,
-    ADMIN
+    ADMIN,
+    BRANCH_STAFF
 }

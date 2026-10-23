@@ -36,6 +36,12 @@ apiClient.interceptors.response.use(
 
     const { status, data } = error.response;
     const errorMessage = data?.error || data?.message || data?.detail;
+    if (status === 403 && import.meta.env.DEV) {
+      console.warn('API request was forbidden', {
+        method: error.config?.method,
+        url: error.config?.url,
+      });
+    }
 
     switch (status) {
       case 401:
@@ -50,7 +56,7 @@ apiClient.interceptors.response.use(
 
       case 403:
         toast.error('Access Denied', {
-          description: errorMessage || 'You do not have permission to perform this action.',
+          description: 'Your account is not authorized to perform this action.',
         });
         break;
 

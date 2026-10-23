@@ -1,4 +1,10 @@
-export type Role = 'STUDENT' | 'DSW' | 'PRINCIPAL' | 'LIBRARIAN' | 'ADMIN';
+export type Role =
+  | 'STUDENT'
+  | 'DSW'
+  | 'PRINCIPAL'
+  | 'LIBRARIAN'
+  | 'ADMIN'
+  | 'BRANCH_STAFF';
 
 export interface User {
   id: number;

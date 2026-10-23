@@ -26,18 +26,6 @@ public class UserDetailsServiceImpl implements UserDetailsService {
                         )
                 );
 
-        System.out.println(
-                "LOGIN USER: " + user.getEmail()
-        );
-
-        System.out.println(
-                "DATABASE ROLE: " + user.getRole()
-        );
-
-        System.out.println(
-                "SPRING AUTHORITY: ROLE_" + user.getRole().name()
-        );
-
         return org.springframework.security.core.userdetails.User
                 .withUsername(user.getEmail())
                 .password(user.getPassword())

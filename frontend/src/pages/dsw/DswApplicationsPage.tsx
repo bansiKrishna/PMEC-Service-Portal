@@ -1,65 +1,129 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { CheckCircle2, XCircle, Search, RefreshCw, AlertTriangle } from 'lucide-react';
-import { dswApi } from '../../api/dswApi';
-import type { BonafideApplicationResponseDto } from '../../types/bonafide';
-import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
-import { Button } from '../../components/ui/button';
-import { Input } from '../../components/ui/input';
-import { Label } from '../../components/ui/label';
-import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from '../../components/ui/table';
-import { LoadingState } from '../../components/common/LoadingState';
-import { EmptyState } from '../../components/common/EmptyState';
-import { formatDate } from '../../lib/utils';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../../components/ui/dialog';
+
+import React, { useState, useEffect } from "react";
+import { toast } from "sonner";
+import {
+  CheckCircle2,
+  XCircle,
+  Search,
+  RefreshCw,
+  AlertTriangle,
+  UserRound,
+  FileText,
+  GraduationCap,
+  CalendarDays,
+  Building2,
+  House,
+  Hash,
+} from "lucide-react";
+
+import { dswApi } from "../../api/dswApi";
+import type { BonafideApplicationResponseDto } from "../../types/bonafide";
+
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+} from "../../components/ui/card";
+import { Button } from "../../components/ui/button";
+import { Input } from "../../components/ui/input";
+import { Label } from "../../components/ui/label";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableHead,
+  TableRow,
+  TableCell,
+} from "../../components/ui/table";
+import { LoadingState } from "../../components/common/LoadingState";
+import { EmptyState } from "../../components/common/EmptyState";
+import { formatDate } from "../../lib/utils";
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "../../components/ui/dialog";
+
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "../../components/ui/sheet";
+
+import { Separator } from "../../components/ui/separator";
 
 export const DswApplicationsPage: React.FC = () => {
-  const [applications, setApplications] = useState<BonafideApplicationResponseDto[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [applications, setApplications] = useState<
+    BonafideApplicationResponseDto[]
+  >([]);
 
-  // Dialog States
-  const [approveApp, setApproveApp] = useState<BonafideApplicationResponseDto | null>(null);
-  const [approveRemarks, setApproveRemarks] = useState<string>('');
-  const [isApproving, setIsApproving] = useState<boolean>(false);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
 
-  const [rejectApp, setRejectApp] = useState<BonafideApplicationResponseDto | null>(null);
-  const [rejectReason, setRejectReason] = useState<string>('');
-  const [isRejecting, setIsRejecting] = useState<boolean>(false);
+  // Selected application for the right-side details Sheet
+  const [selectedApplication, setSelectedApplication] =
+    useState<BonafideApplicationResponseDto | null>(null);
 
-  const navigate = useNavigate();
+  // Approval dialog state
+  const [approveApp, setApproveApp] =
+    useState<BonafideApplicationResponseDto | null>(null);
+  const [approveRemarks, setApproveRemarks] = useState("");
+  const [isApproving, setIsApproving] = useState(false);
+
+  // Rejection dialog state
+  const [rejectApp, setRejectApp] =
+    useState<BonafideApplicationResponseDto | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [isRejecting, setIsRejecting] = useState(false);
 
   const fetchApplications = async () => {
     setLoading(true);
+
     try {
       const data = await dswApi.getPendingApplications();
       setApplications(data);
     } catch (error) {
-      console.error('Error fetching DSW applications:', error);
-      toast.error('Failed to load pending applications');
+      console.error("Error fetching DSW applications:", error);
+      toast.error("Failed to load pending applications");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchApplications();
+    void fetchApplications();
   }, []);
 
   const handleApprove = async () => {
     if (!approveApp) return;
+
     setIsApproving(true);
+
     try {
-      await dswApi.approveApplication(approveApp.id, approveRemarks || undefined);
-      toast.success('Application Approved', {
+      await dswApi.approveApplication(
+        approveApp.id,
+        approveRemarks || undefined
+      );
+
+      toast.success("Application Approved", {
         description: `Application #${approveApp.id} has been approved by DSW and forwarded to Principal.`,
       });
+
       setApproveApp(null);
-      setApproveRemarks('');
-      fetchApplications();
+      setApproveRemarks("");
+      setSelectedApplication(null);
+
+      await fetchApplications();
     } catch (error) {
-      console.error('Approval failed:', error);
+      console.error("Approval failed:", error);
+      toast.error("Failed to approve application");
     } finally {
       setIsApproving(false);
     }
@@ -67,209 +131,506 @@ export const DswApplicationsPage: React.FC = () => {
 
   const handleReject = async () => {
     if (!rejectApp || !rejectReason.trim()) {
-      toast.error('Please specify a rejection reason');
+      toast.error("Please specify a rejection reason");
       return;
     }
+
     setIsRejecting(true);
+
     try {
-      await dswApi.rejectApplication(rejectApp.id, { reason: rejectReason });
-      toast.success('Application Rejected', {
+      await dswApi.rejectApplication(rejectApp.id, {
+        reason: rejectReason.trim(),
+      });
+
+      toast.success("Application Rejected", {
         description: `Application #${rejectApp.id} has been rejected with remarks.`,
       });
+
       setRejectApp(null);
-      setRejectReason('');
-      fetchApplications();
+      setRejectReason("");
+      setSelectedApplication(null);
+
+      await fetchApplications();
     } catch (error) {
-      console.error('Rejection failed:', error);
+      console.error("Rejection failed:", error);
+      toast.error("Failed to reject application");
     } finally {
       setIsRejecting(false);
     }
   };
 
   const filteredApplications = applications.filter((app) => {
+    const query = searchQuery.toLowerCase().trim();
+
     return (
-      app.id.toString().includes(searchQuery) ||
-      (app.studentName && app.studentName.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      (app.rollNumber && app.rollNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
-      app.reason.toLowerCase().includes(searchQuery.toLowerCase())
+      app.id.toString().includes(query) ||
+      (app.studentName ?? "").toLowerCase().includes(query) ||
+      (app.rollNumber ?? "").toLowerCase().includes(query) ||
+      (app.reason ?? "").toLowerCase().includes(query)
     );
   });
 
+  const openApprovalDialog = (
+    app: BonafideApplicationResponseDto
+  ) => {
+    setSelectedApplication(null);
+    setApproveRemarks("");
+    setApproveApp(app);
+  };
+
+  const openRejectionDialog = (
+    app: BonafideApplicationResponseDto
+  ) => {
+    setSelectedApplication(null);
+    setRejectReason("");
+    setRejectApp(app);
+  };
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
-            DSW Bonafide Verification Desk
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">
-            Review and approve pending student applications to forward to the Principal.
+    <div className="w-full min-w-0 space-y-4">
+      {/* Compact page header */}
+      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-muted-foreground" />
+
+            <h1 className="text-base font-semibold tracking-tight text-foreground">
+              DSW Bonafide Verification
+            </h1>
+          </div>
+
+          <p className="mt-1 text-[11px] text-muted-foreground">
+            Review and process pending student applications
           </p>
         </div>
 
-        <Button variant="outline" onClick={fetchApplications} className="gap-2 text-xs">
-          <RefreshCw className="w-4 h-4" /> Refresh Applications
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => void fetchApplications()}
+          disabled={loading}
+          className="h-8 gap-2 rounded-none text-xs"
+        >
+          <RefreshCw
+            className={`h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`}
+          />
+          Refresh
         </Button>
-      </div>
+      </header>
 
-      <Card className="glass-panel">
-        <CardHeader className="pb-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <CardTitle className="text-lg font-semibold">Pending Applications Queue</CardTitle>
-            <div className="relative w-full sm:w-72">
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+      {/* Applications table */}
+      <Card className="min-w-0 rounded-none border-border shadow-none">
+        <CardHeader className="space-y-3 border-b border-border px-3 py-3 sm:px-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <CardTitle className="text-sm font-semibold">
+                Pending Applications
+              </CardTitle>
+
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                {loading
+                  ? "Loading applications..."
+                  : `${filteredApplications.length} application(s) found`}
+              </p>
+            </div>
+
+            <div className="relative w-full sm:w-64">
+              <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+
               <Input
-                placeholder="Search by student, roll no, ID..."
+                placeholder="Search name, roll no, ID..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className="h-8 rounded-none pl-8 text-xs"
               />
             </div>
           </div>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="p-3 sm:p-4">
           {loading ? (
-            <LoadingState rows={4} message="Fetching pending applications..." />
+            <LoadingState
+              rows={4}
+              message="Fetching pending applications..."
+            />
           ) : filteredApplications.length === 0 ? (
             <EmptyState
-              title="No Applications Awaiting DSW Action"
-              description="All submitted Bonafide applications have been processed."
+              icon={<FileText className="h-4 w-4" />}
+              title="No Pending Applications"
+              description={
+                searchQuery
+                  ? "No applications match your search."
+                  : "There are currently no pending Bonafide applications."
+              }
             />
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>App ID</TableHead>
-                  <TableHead>Student Name</TableHead>
-                  <TableHead>Roll Number</TableHead>
-                  <TableHead>Department</TableHead>
-                  <TableHead>Reason</TableHead>
-                  <TableHead>Submitted</TableHead>
-                  <TableHead className="text-right">Desk Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredApplications.map((app) => (
-                  <TableRow key={app.id}>
-                    <TableCell className="font-mono font-bold text-slate-900 dark:text-slate-100">
-                      #{app.id}
-                    </TableCell>
-                    <TableCell className="font-semibold text-slate-800 dark:text-slate-200">
-                      {app.studentName || `Student #${app.studentId}`}
-                    </TableCell>
-                    <TableCell className="font-mono text-xs">{app.rollNumber || 'N/A'}</TableCell>
-                    <TableCell className="text-xs">{app.department || 'N/A'}</TableCell>
-                    <TableCell className="max-w-xs truncate text-xs">{app.reason}</TableCell>
-                    <TableCell className="text-xs text-slate-500">{formatDate(app.createdAt)}</TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => navigate(`/dsw/applications/${app.id}`)}
-                        className="text-xs"
-                      >
-                        Details
-                      </Button>
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => setApproveApp(app)}
-                        className="text-xs bg-emerald-600 hover:bg-emerald-500 gap-1"
-                      >
-                        <CheckCircle2 className="w-3.5 h-3.5" /> Approve
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => setRejectApp(app)}
-                        className="text-xs gap-1"
-                      >
-                        <XCircle className="w-3.5 h-3.5" /> Reject
-                      </Button>
-                    </TableCell>
+            <div className="w-full overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="text-[10px] font-semibold uppercase">
+                      App ID
+                    </TableHead>
+                    <TableHead className="text-[10px] font-semibold uppercase">
+                      Student
+                    </TableHead>
+                    <TableHead className="text-[10px] font-semibold uppercase">
+                      Roll Number
+                    </TableHead>
+                    <TableHead className="text-[10px] font-semibold uppercase">
+                      Department
+                    </TableHead>
+                    <TableHead className="text-[10px] font-semibold uppercase">
+                      Submitted
+                    </TableHead>
+                    <TableHead className="text-right text-[10px] font-semibold uppercase">
+                      Actions
+                    </TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+
+                <TableBody>
+                  {filteredApplications.map((app) => (
+                    <TableRow key={app.id}>
+                      <TableCell className="font-mono text-xs font-medium">
+                        #{app.id}
+                      </TableCell>
+
+                      <TableCell className="text-xs font-medium">
+                        {app.studentName || `Student #${app.studentId}`}
+                      </TableCell>
+
+                      <TableCell className="font-mono text-[11px]">
+                        {app.rollNumber || "N/A"}
+                      </TableCell>
+
+                      <TableCell className="text-xs">
+                        {app.department || "N/A"}
+                      </TableCell>
+
+                      <TableCell className="whitespace-nowrap text-[11px] text-muted-foreground">
+                        {formatDate(app.createdAt)}
+                      </TableCell>
+
+                      <TableCell>
+                        <div className="flex justify-end gap-1.5">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 rounded-none px-2 text-[11px]"
+                            onClick={() => setSelectedApplication(app)}
+                          >
+                            Details
+                          </Button>
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 gap-1 rounded-none border-emerald-600/30 px-2 text-[11px] text-emerald-700 hover:bg-emerald-50 dark:text-emerald-400 dark:hover:bg-emerald-950"
+                            onClick={() => openApprovalDialog(app)}
+                          >
+                            <CheckCircle2 className="h-3 w-3" />
+                            Approve
+                          </Button>
+
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            className="h-7 gap-1 rounded-none px-2 text-[11px]"
+                            onClick={() => openRejectionDialog(app)}
+                          >
+                            <XCircle className="h-3 w-3" />
+                            Reject
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
 
-      <Dialog open={!!approveApp} onOpenChange={() => setApproveApp(null)}>
-        <DialogContent className="sm:max-w-md">
+      {/* Right-side application details Sheet */}
+      <Sheet
+        open={!!selectedApplication}
+        onOpenChange={(open) => {
+          if (!open) setSelectedApplication(null);
+        }}
+      >
+        <SheetContent
+          side="right"
+          className="flex w-full flex-col gap-0 overflow-hidden rounded-none p-0 sm:max-w-lg"
+        >
+          {selectedApplication && (
+            <>
+              <SheetHeader className="border-b border-border px-4 py-4 pr-12">
+                <div className="flex items-center gap-2">
+                  <div className="flex h-8 w-8 items-center justify-center border border-border bg-muted/30">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                  </div>
+
+                  <div className="min-w-0">
+                    <SheetTitle className="text-base font-semibold">
+                      Application #{selectedApplication.id}
+                    </SheetTitle>
+
+                    <SheetDescription className="mt-1 text-[11px]">
+                      Bonafide application details and verification
+                    </SheetDescription>
+                  </div>
+                </div>
+              </SheetHeader>
+
+              {/* Scrollable details */}
+              <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
+                {/* Student information */}
+                <section className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <UserRound className="h-4 w-4 text-muted-foreground" />
+                    <h2 className="text-sm font-semibold">
+                      Student Information
+                    </h2>
+                  </div>
+
+                  <div className="border border-border">
+                    <DetailRow
+                      label="Student Name"
+                      value={
+                        selectedApplication.studentName ||
+                        `Student #${selectedApplication.studentId}`
+                      }
+                    />
+
+                    <DetailRow
+                      label="Student ID"
+                      value={selectedApplication.studentId}
+                    />
+
+                    <DetailRow
+                      label="Roll Number"
+                      value={selectedApplication.rollNumber}
+                    />
+
+                    <DetailRow
+                      label="Department"
+                      value={selectedApplication.department}
+                    />
+
+                    <DetailRow
+                      label="Parent Name"
+                      value={selectedApplication.parentName}
+                      last
+                    />
+                  </div>
+                </section>
+
+                <Separator />
+
+                {/* Application information */}
+                <section className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <GraduationCap className="h-4 w-4 text-muted-foreground" />
+                    <h2 className="text-sm font-semibold">
+                      Application Information
+                    </h2>
+                  </div>
+
+                  <div className="border border-border">
+                    <DetailRow
+                      label="Application ID"
+                      value={`#${selectedApplication.id}`}
+                    />
+
+                    <DetailRow
+                      label="Reason"
+                      value={selectedApplication.reason}
+                    />
+
+                    <DetailRow
+                      label="Submitted On"
+                      value={formatDate(selectedApplication.createdAt)}
+                      last={!selectedApplication.hostelName}
+                    />
+
+                    {selectedApplication.hostelName && (
+                      <>
+                        <DetailRow
+                          label="Hostel"
+                          value={selectedApplication.hostelName}
+                        />
+
+                        <DetailRow
+                          label="Room Number"
+                          value={selectedApplication.roomNumber}
+                          last
+                        />
+                      </>
+                    )}
+                  </div>
+                </section>
+
+                {/* Review note */}
+                <div className="flex items-start gap-2 border border-border bg-muted/20 p-3">
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                    Verify the student information and application reason
+                    before approving or rejecting this application.
+                  </p>
+                </div>
+              </div>
+
+              {/* Sticky action footer */}
+              <div className="flex shrink-0 gap-2 border-t border-border bg-background p-4">
+                <Button
+                  variant="outline"
+                  className="h-9 flex-1 rounded-none text-xs"
+                  onClick={() => openRejectionDialog(selectedApplication)}
+                >
+                  <XCircle className="mr-1.5 h-3.5 w-3.5" />
+                  Reject
+                </Button>
+
+                <Button
+                  className="h-9 flex-1 rounded-none bg-emerald-600 text-xs hover:bg-emerald-700"
+                  onClick={() => openApprovalDialog(selectedApplication)}
+                >
+                  <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                  Approve
+                </Button>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Approval confirmation dialog */}
+      <Dialog
+        open={!!approveApp}
+        onOpenChange={(open) => {
+          if (!open && !isApproving) setApproveApp(null);
+        }}
+      >
+        <DialogContent className="rounded-none sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-emerald-600">
-              <CheckCircle2 className="w-5 h-5" /> Approve Bonafide Application?
+            <DialogTitle className="flex items-center gap-2 text-sm font-semibold text-emerald-600">
+              <CheckCircle2 className="h-4 w-4" />
+              Approve Bonafide Application?
             </DialogTitle>
-            <DialogDescription>
-              Review application details before forwarding to Principal.
+
+            <DialogDescription className="text-xs">
+              Confirm approval before forwarding the application to the
+              Principal.
             </DialogDescription>
           </DialogHeader>
 
           {approveApp && (
             <div className="space-y-3 py-2 text-xs">
-              <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-1">
-                <p><strong>Application ID:</strong> #{approveApp.id}</p>
-                <p><strong>Student:</strong> {approveApp.studentName} ({approveApp.rollNumber})</p>
-                <p><strong>Reason:</strong> {approveApp.reason}</p>
-                <p><strong>Parent Name:</strong> {approveApp.parentName}</p>
-                {approveApp.hostelName && <p><strong>Hostel:</strong> {approveApp.hostelName}, Room {approveApp.roomNumber}</p>}
+              <div className="space-y-2 border border-border bg-muted/20 p-3">
+                <DetailRow
+                  label="Application ID"
+                  value={`#${approveApp.id}`}
+                />
+
+                <DetailRow
+                  label="Student"
+                  value={approveApp.studentName}
+                />
+
+                <DetailRow
+                  label="Reason"
+                  value={approveApp.reason}
+                  last
+                />
               </div>
 
-              <div className="space-y-1">
-                <Label htmlFor="remarks">DSW Remarks (Optional)</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="remarks" className="text-xs">
+                  DSW Remarks (Optional)
+                </Label>
+
                 <Input
                   id="remarks"
-                  placeholder="Recommended for Principal approval..."
+                  placeholder="Enter approval remarks..."
                   value={approveRemarks}
                   onChange={(e) => setApproveRemarks(e.target.value)}
+                  className="h-9 rounded-none text-xs"
                 />
               </div>
             </div>
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setApproveApp(null)}>
+            <Button
+              variant="outline"
+              className="rounded-none text-xs"
+              onClick={() => setApproveApp(null)}
+              disabled={isApproving}
+            >
               Cancel
             </Button>
+
             <Button
-              onClick={handleApprove}
+              onClick={() => void handleApprove()}
               disabled={isApproving}
-              className="bg-emerald-600 hover:bg-emerald-500"
+              className="rounded-none bg-emerald-600 text-xs hover:bg-emerald-700"
             >
-              {isApproving ? <RefreshCw className="w-4 h-4 animate-spin mr-1" /> : null}
-              Confirm Approval
+              {isApproving && (
+                <RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              )}
+              {isApproving ? "Approving..." : "Confirm Approval"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={!!rejectApp} onOpenChange={() => setRejectApp(null)}>
-        <DialogContent className="sm:max-w-md">
+      {/* Rejection confirmation dialog */}
+      <Dialog
+        open={!!rejectApp}
+        onOpenChange={(open) => {
+          if (!open && !isRejecting) setRejectApp(null);
+        }}
+      >
+        <DialogContent className="rounded-none sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-rose-600">
-              <AlertTriangle className="w-5 h-5" /> Reject Bonafide Application?
+            <DialogTitle className="flex items-center gap-2 text-sm font-semibold text-destructive">
+              <AlertTriangle className="h-4 w-4" />
+              Reject Bonafide Application?
             </DialogTitle>
-            <DialogDescription>
-              You must provide a clear rejection reason for the student.
+
+            <DialogDescription className="text-xs">
+              A clear rejection reason is required.
             </DialogDescription>
           </DialogHeader>
 
           {rejectApp && (
-            <div className="space-y-3 py-2 text-xs">
-              <div className="p-3 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                <p><strong>Application ID:</strong> #{rejectApp.id}</p>
-                <p><strong>Student:</strong> {rejectApp.studentName}</p>
+            <div className="space-y-3 py-2">
+              <div className="space-y-2 border border-border bg-muted/20 p-3">
+                <DetailRow
+                  label="Application ID"
+                  value={`#${rejectApp.id}`}
+                />
+
+                <DetailRow
+                  label="Student"
+                  value={rejectApp.studentName}
+                  last
+                />
               </div>
 
-              <div className="space-y-1">
-                <Label htmlFor="rejectReason">Rejection Reason *</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="rejectReason" className="text-xs">
+                  Rejection Reason *
+                </Label>
+
                 <textarea
                   id="rejectReason"
                   rows={3}
                   placeholder="Specify why this application is rejected..."
-                  className="w-full rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2.5 text-xs text-slate-900 dark:text-slate-100"
+                  className="w-full resize-y border border-input bg-background px-3 py-2 text-xs outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   value={rejectReason}
                   onChange={(e) => setRejectReason(e.target.value)}
                 />
@@ -278,16 +639,25 @@ export const DswApplicationsPage: React.FC = () => {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectApp(null)}>
+            <Button
+              variant="outline"
+              className="rounded-none text-xs"
+              onClick={() => setRejectApp(null)}
+              disabled={isRejecting}
+            >
               Cancel
             </Button>
+
             <Button
               variant="destructive"
-              onClick={handleReject}
+              className="rounded-none text-xs"
+              onClick={() => void handleReject()}
               disabled={isRejecting || !rejectReason.trim()}
             >
-              {isRejecting ? <RefreshCw className="w-4 h-4 animate-spin mr-1" /> : null}
-              Reject Application
+              {isRejecting && (
+                <RefreshCw className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+              )}
+              {isRejecting ? "Rejecting..." : "Confirm Rejection"}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -295,3 +665,34 @@ export const DswApplicationsPage: React.FC = () => {
     </div>
   );
 };
+
+/**
+ * Reusable compact key-value row for application details.
+ */
+interface DetailRowProps {
+  label: string;
+  value: string | number | null | undefined;
+  last?: boolean;
+}
+
+const DetailRow: React.FC<DetailRowProps> = ({
+  label,
+  value,
+  last = false,
+}) => (
+  <div
+    className={`grid grid-cols-[110px_minmax(0,1fr)] gap-3 px-3 py-2.5 ${
+      last ? "" : "border-b border-border"
+    }`}
+  >
+    <span className="text-[10px] font-medium text-muted-foreground">
+      {label}
+    </span>
+
+    <span className="min-w-0 break-words text-xs font-medium text-foreground">
+      {value === null || value === undefined || value === ""
+        ? "N/A"
+        : value}
+    </span>
+  </div>
+);

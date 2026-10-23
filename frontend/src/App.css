@@ -1,5 +1,5 @@
 .counter {
-  font-size: 16px;
+  font-size: 9px;
   padding: 5px 10px;
   border-radius: 5px;
   color: var(--accent);
@@ -181,4 +181,8 @@
     right: 0;
     border-right-color: var(--border);
   }
+}
+
+*{
+  font-size: xx-small;
 }

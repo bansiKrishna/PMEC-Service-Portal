@@ -1,42 +1,46 @@
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
-import { AuthLayout } from '../layouts/AuthLayout';
-import { DashboardLayout } from '../layouts/DashboardLayout';
-import { ProtectedRoute } from './ProtectedRoute';
-import { RoleGuard } from './RoleGuard';
+import React from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
+import { AuthLayout } from "../layouts/AuthLayout";
+import { DashboardLayout } from "../layouts/DashboardLayout";
+import { ProtectedRoute } from "./ProtectedRoute";
+import { RoleGuard } from "./RoleGuard";
 
 // Auth Pages
-import { LoginPage } from '../pages/auth/LoginPage';
-import { RegisterPage } from '../pages/auth/RegisterPage';
-import { UnauthorizedPage } from '../pages/auth/UnauthorizedPage';
+import { LoginPage } from "../pages/auth/LoginPage";
+import { RegisterPage } from "../pages/auth/RegisterPage";
+import { UnauthorizedPage } from "../pages/auth/UnauthorizedPage";
 
 // Admin Pages
-import { AdminDashboard } from '../pages/admin/AdminDashboard';
-import { StaffManagementPage } from '../pages/admin/StaffManagementPage';
-import { CertificateTemplatesPage } from '../pages/admin/CertificateTemplatesPage';
-import { AdminSettingsPage } from '../pages/admin/AdminSettingsPage';
+import { AdminDashboard } from "../pages/admin/AdminDashboard";
+import { StaffManagementPage } from "../pages/admin/StaffManagementPage";
+import { CertificateTemplatesPage } from "../pages/admin/CertificateTemplatesPage";
+import { AdminSettingsPage } from "../pages/admin/AdminSettingsPage";
+import SemesterRegistrationManagementPage from "../pages/admin/SemesterRegistrationManagementPage";
 
 // Student Pages
-import { StudentDashboard } from '../pages/student/StudentDashboard';
-import { ApplyBonafidePage } from '../pages/student/ApplyBonafidePage';
-import { StudentApplicationsPage } from '../pages/student/StudentApplicationsPage';
-import { ApplicationDetailsPage } from '../pages/student/ApplicationDetailsPage';
-import { StudentCertificatesPage } from '../pages/student/StudentCertificatesPage';
-import { StudentProfilePage } from '../pages/student/StudentProfilePage';
+import { StudentDashboard } from "../pages/student/StudentDashboard";
+import { ApplyBonafidePage } from "../pages/student/ApplyBonafidePage";
+import { StudentApplicationsPage } from "../pages/student/StudentApplicationsPage";
+import { ApplicationDetailsPage } from "../pages/student/ApplicationDetailsPage";
+import { StudentCertificatesPage } from "../pages/student/StudentCertificatesPage";
+import { StudentProfilePage } from "../pages/student/StudentProfilePage";
+import SemesterRegistrationPage from "../pages/student/SemesterRegistrationPage";
+import { SemesterRegistrationDetailsPage } from "../pages/student/SemesterRegistrationDetailsPage";
 
 // DSW Pages
-import { DswDashboard } from '../pages/dsw/DswDashboard';
-import { DswApplicationsPage } from '../pages/dsw/DswApplicationsPage';
-import { DswApplicationDetailsPage } from '../pages/dsw/DswApplicationDetailsPage';
+import { DswDashboard } from "../pages/dsw/DswDashboard";
+import { DswApplicationsPage } from "../pages/dsw/DswApplicationsPage";
+import { DswApplicationDetailsPage } from "../pages/dsw/DswApplicationDetailsPage";
+import DswReviewHistoryPage from "@/pages/dsw/DswReviewHistoryPage";
 
 // Principal Pages
-import { PrincipalDashboard } from '../pages/principal/PrincipalDashboard';
-import { PrincipalApplicationsPage } from '../pages/principal/PrincipalApplicationsPage';
-import { PrincipalApplicationDetailsPage } from '../pages/principal/PrincipalApplicationDetailsPage';
+import { PrincipalDashboard } from "../pages/principal/PrincipalDashboard";
+import { PrincipalApplicationsPage } from "../pages/principal/PrincipalApplicationsPage";
+import { PrincipalApplicationDetailsPage } from "../pages/principal/PrincipalApplicationDetailsPage";
 
 // Librarian Pages
-import { LibrarianDashboard } from '../pages/librarian/LibrarianDashboard';
+import { LibrarianDashboard } from "../pages/librarian/LibrarianDashboard";
 
 const RootRedirect: React.FC = () => {
   const { isAuthenticated, getDefaultRedirectPath } = useAuth();
@@ -72,7 +76,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="/admin/dashboard"
           element={
-            <RoleGuard allowedRoles={['ADMIN']}>
+            <RoleGuard allowedRoles={["ADMIN"]}>
               <AdminDashboard />
             </RoleGuard>
           }
@@ -80,7 +84,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="/admin/staff"
           element={
-            <RoleGuard allowedRoles={['ADMIN']}>
+            <RoleGuard allowedRoles={["ADMIN"]}>
               <StaffManagementPage />
             </RoleGuard>
           }
@@ -88,7 +92,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="/admin/certificate-templates"
           element={
-            <RoleGuard allowedRoles={['ADMIN']}>
+            <RoleGuard allowedRoles={["ADMIN"]}>
               <CertificateTemplatesPage />
             </RoleGuard>
           }
@@ -96,8 +100,16 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="/admin/settings"
           element={
-            <RoleGuard allowedRoles={['ADMIN']}>
+            <RoleGuard allowedRoles={["ADMIN"]}>
               <AdminSettingsPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/admin/semester-registration"
+          element={
+            <RoleGuard allowedRoles={["ADMIN"]}>
+              <SemesterRegistrationManagementPage />
             </RoleGuard>
           }
         />
@@ -106,7 +118,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="/student/dashboard"
           element={
-            <RoleGuard allowedRoles={['STUDENT']}>
+            <RoleGuard allowedRoles={["STUDENT"]}>
               <StudentDashboard />
             </RoleGuard>
           }
@@ -114,7 +126,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="/student/bonafide"
           element={
-            <RoleGuard allowedRoles={['STUDENT']}>
+            <RoleGuard allowedRoles={["STUDENT"]}>
               <ApplyBonafidePage />
             </RoleGuard>
           }
@@ -122,7 +134,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="/student/applications"
           element={
-            <RoleGuard allowedRoles={['STUDENT']}>
+            <RoleGuard allowedRoles={["STUDENT"]}>
               <StudentApplicationsPage />
             </RoleGuard>
           }
@@ -130,7 +142,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="/student/applications/:id"
           element={
-            <RoleGuard allowedRoles={['STUDENT']}>
+            <RoleGuard allowedRoles={["STUDENT"]}>
               <ApplicationDetailsPage />
             </RoleGuard>
           }
@@ -138,7 +150,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="/student/certificates"
           element={
-            <RoleGuard allowedRoles={['STUDENT']}>
+            <RoleGuard allowedRoles={["STUDENT"]}>
               <StudentCertificatesPage />
             </RoleGuard>
           }
@@ -146,8 +158,24 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="/student/profile"
           element={
-            <RoleGuard allowedRoles={['STUDENT']}>
+            <RoleGuard allowedRoles={["STUDENT"]}>
               <StudentProfilePage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/student/semester-registration"
+          element={
+            <RoleGuard allowedRoles={["STUDENT"]}>
+              <SemesterRegistrationPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/student/semester-registration/:id"
+          element={
+            <RoleGuard allowedRoles={["STUDENT"]}>
+              <SemesterRegistrationDetailsPage />
             </RoleGuard>
           }
         />
@@ -156,7 +184,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="/dsw/dashboard"
           element={
-            <RoleGuard allowedRoles={['DSW']}>
+            <RoleGuard allowedRoles={["DSW"]}>
               <DswDashboard />
             </RoleGuard>
           }
@@ -164,7 +192,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="/dsw/applications"
           element={
-            <RoleGuard allowedRoles={['DSW']}>
+            <RoleGuard allowedRoles={["DSW"]}>
               <DswApplicationsPage />
             </RoleGuard>
           }
@@ -172,17 +200,18 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="/dsw/applications/:id"
           element={
-            <RoleGuard allowedRoles={['DSW']}>
+            <RoleGuard allowedRoles={["DSW"]}>
               <DswApplicationDetailsPage />
             </RoleGuard>
           }
         />
+        <Route path="/dsw/review-history" element={<DswReviewHistoryPage />} />
 
         {/* PRINCIPAL ROUTES */}
         <Route
           path="/principal/dashboard"
           element={
-            <RoleGuard allowedRoles={['PRINCIPAL']}>
+            <RoleGuard allowedRoles={["PRINCIPAL"]}>
               <PrincipalDashboard />
             </RoleGuard>
           }
@@ -190,7 +219,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="/principal/applications"
           element={
-            <RoleGuard allowedRoles={['PRINCIPAL']}>
+            <RoleGuard allowedRoles={["PRINCIPAL"]}>
               <PrincipalApplicationsPage />
             </RoleGuard>
           }
@@ -198,7 +227,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="/principal/applications/:id"
           element={
-            <RoleGuard allowedRoles={['PRINCIPAL']}>
+            <RoleGuard allowedRoles={["PRINCIPAL"]}>
               <PrincipalApplicationDetailsPage />
             </RoleGuard>
           }
@@ -208,7 +237,7 @@ export const AppRoutes: React.FC = () => {
         <Route
           path="/librarian/dashboard"
           element={
-            <RoleGuard allowedRoles={['LIBRARIAN']}>
+            <RoleGuard allowedRoles={["LIBRARIAN"]}>
               <LibrarianDashboard />
             </RoleGuard>
           }

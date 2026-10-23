@@ -13,12 +13,12 @@ spring:
           starttls:
             enable: true
   # ========================================
-  # PostgreSQL
+  # Supabase
   # ========================================
   datasource:
-    url: jdbc:postgresql://localhost:5432/postgres
-    username: postgres
-    password: ${DB_PASSWORD}
+    url: ${SUPABASE_DB_URL}
+    username: ${SUPABASE_DB_USERNAME}
+    password: ${SUPABASE_DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
 
   # ========================================
@@ -28,6 +28,7 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
+    open-in-view: false
     properties:
       hibernate:
         format_sql: true

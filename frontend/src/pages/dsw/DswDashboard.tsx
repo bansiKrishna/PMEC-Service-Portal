@@ -81,7 +81,7 @@ export const DswDashboard: React.FC = () => {
           label="Your Authority"
           value="First Review"
           sub="DSW → Principal"
-          icon={<CheckCircle2 className="w-3.5 h-3.5 text-primary" />}
+          icon={<CheckCircle2 className="w-3.5 h-3.5 text-sm" />}
         />
         <StatCard
           label="Rejection Policy"

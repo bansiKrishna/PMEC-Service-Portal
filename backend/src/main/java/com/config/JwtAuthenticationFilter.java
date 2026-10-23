@@ -1,6 +1,7 @@
 package com.config;
 
 import com.security.JwtService;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,14 +12,20 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 @Component
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final Logger logger =
+            LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     private final JwtService jwtService;
     private final UserDetailsService userDetailsService;
@@ -43,19 +50,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         final String token =
                 authHeader.substring(7);
 
-        final String email =
-                jwtService.extractEmail(token);
+        final String email;
+        try {
+            email = jwtService.extractEmail(token);
+        } catch (JwtException | IllegalArgumentException exception) {
+            rejectToken(response);
+            return;
+        }
 
         if (email != null &&
                 SecurityContextHolder
                         .getContext()
                         .getAuthentication() == null) {
 
-            UserDetails userDetails =
-                    userDetailsService
-                            .loadUserByUsername(email);
+            final UserDetails userDetails;
+            try {
+                userDetails = userDetailsService.loadUserByUsername(email);
+            } catch (UsernameNotFoundException exception) {
+                rejectToken(response);
+                return;
+            }
 
-            if (jwtService.isTokenValid(
+            if (userDetails.isEnabled()
+                    && jwtService.isTokenValid(
                     token,
                     userDetails.getUsername())) {
 
@@ -79,5 +96,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         filterChain.doFilter(request, response);
     }
-}
 
+    private void rejectToken(HttpServletResponse response) throws IOException {
+        logger.warn("Rejected invalid, expired, or inactive JWT bearer token.");
+        SecurityContextHolder.clearContext();
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType("application/json");
+        response.setCharacterEncoding("UTF-8");
+        response.getWriter().write(
+                "{\"error\":\"Authentication token is invalid or expired.\"}"
+        );
+    }
+}

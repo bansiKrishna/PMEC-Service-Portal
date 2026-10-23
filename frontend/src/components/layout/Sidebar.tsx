@@ -1,24 +1,48 @@
-import React from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
+import React, { useEffect, useState } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
+import { toast } from "sonner";
 import {
   LayoutDashboard,
+  Bell,
+  ClipboardList,
+  BookOpen,
+  CalendarDays,
+  GraduationCap,
+  ChartNoAxesColumn,
+  FileBadge,
+  FileCheck,
+  IdCard,
+  ClipboardCheck,
+  CreditCard,
+  Award,
+  House,
+  // Library,
+  // BriefcaseBusiness,
+  // MessageSquareWarning,
+  FileClock,
+  Clock3,
+  Download,
+  UserRound,
+  Settings,
   Users,
   FileCode,
-  FilePlus2,
-  FileText,
-  Award,
-  User,
-  BookOpen,
-  Settings,
+  History,
   ShieldCheck,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   LogOut,
-  GraduationCap,
-} from 'lucide-react';
-import { Button } from '../ui/button';
-import { toast } from 'sonner';
+  BookMarked,
+  CalendarCheck,
+  Wallet,
+  Settings2,
+  ChartNoAxesCombined,
+  // Building2,
+} from "lucide-react";
+
+import type { LucideIcon } from "lucide-react";
+import { useAuth } from "../../hooks/useAuth";
+import { Button } from "../ui/button";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -30,13 +54,309 @@ interface SidebarProps {
 interface NavItem {
   label: string;
   path: string;
-  icon: React.ReactNode;
+  icon: LucideIcon;
 }
 
 interface NavGroup {
-  label?: string;
+  label: string;
   items: NavItem[];
 }
+
+const studentNavGroups: NavGroup[] = [
+  {
+    label: "Overview",
+    items: [
+      {
+        label: "Dashboard",
+        path: "/student/dashboard",
+        icon: LayoutDashboard,
+      },
+      {
+        label: "Notifications",
+        path: "/student/notifications",
+        icon: Bell,
+      },
+    ],
+  },
+  {
+    label: "Academic Services",
+    items: [
+      {
+        label: "Semester Registration",
+        path: "/student/semester-registration",
+        icon: ClipboardList,
+      },
+      {
+        label: "Subject Registration",
+        path: "/student/subject-registration",
+        icon: BookOpen,
+      },
+      {
+        label: "Academic Calendar & Timetable",
+        path: "/student/academic-calendar",
+        icon: CalendarDays,
+      },
+      {
+        label: "Examination Services",
+        path: "/student/examinations",
+        icon: GraduationCap,
+      },
+      {
+        label: "Attendance & Internal Marks",
+        path: "/student/attendance",
+        icon: ChartNoAxesColumn,
+      },
+    ],
+  },
+  {
+    label: "Certificates & Documents",
+    items: [
+      {
+        label: "Issue Bonafide Certificate",
+        path: "/student/bonafide",
+        icon: FileBadge,
+      },
+      {
+        label: "NOC & Permission Letters",
+        path: "/student/noc-requests",
+        icon: FileCheck,
+      },
+      {
+        label: "Student ID Card",
+        path: "/student/id-card",
+        icon: IdCard,
+      },
+      {
+        label: "No-Dues & Clearance",
+        path: "/student/no-dues",
+        icon: ClipboardCheck,
+      },
+    ],
+  },
+  {
+    label: "Financial & Welfare",
+    items: [
+      {
+        label: "Fees & Receipts",
+        path: "/student/fees",
+        icon: CreditCard,
+      },
+      {
+        label: "Scholarship & verification",
+        path: "/student/scholarships",
+        icon: Award,
+      },
+      {
+        label: "Hostel & Mess",
+        path: "/student/hostel",
+        icon: House,
+      },
+    ],
+  },
+
+  {
+    label: "My Activity",
+    items: [
+      {
+        label: "My Applications",
+        path: "/student/applications",
+        icon: FileClock,
+      },
+      {
+        label: "Application Tracking",
+        path: "/student/application-tracking",
+        icon: Clock3,
+      },
+      {
+        label: "Issued Documents",
+        path: "/student/certificates",
+        icon: Download,
+      },
+    ],
+  },
+  {
+    label: "Account",
+    items: [
+      {
+        label: "My Profile",
+        path: "/student/profile",
+        icon: UserRound,
+      },
+      {
+        label: "Settings & Security",
+        path: "/student/settings",
+        icon: Settings,
+      },
+    ],
+  },
+];
+
+const roleNavGroups: Record<string, NavGroup[]> = {
+  ADMIN: [
+    {
+      label: "Overview",
+      items: [
+        {
+          label: "Dashboard",
+          path: "/admin/dashboard",
+          icon: LayoutDashboard,
+        },
+      ],
+    },
+    {
+      label: "Management",
+      items: [
+        {
+          label: "Staff Management",
+          path: "/admin/staff",
+          icon: Users,
+        },
+        {
+          label: "Certificate Templates",
+          path: "/admin/certificate-templates",
+          icon: FileCode,
+        },
+        {
+          label: "System Settings",
+          path: "/admin/settings",
+          icon: Settings2,
+        },
+        {
+          label: "Semester Registration",
+          path: "/admin/semester-registration",
+          icon: ClipboardList,
+        },
+      ],
+    },
+  ],
+
+  DSW: [
+    {
+      label: "Overview",
+      items: [
+        {
+          label: "Dashboard",
+          path: "/dsw/dashboard",
+          icon: LayoutDashboard,
+        },
+        {
+          label: "Notifications",
+          path: "/dsw/notifications",
+          icon: Bell,
+        },
+      ],
+    },
+
+    {
+      label: "Service Management",
+      items: [
+        {
+          label: "Pending Applications",
+          path: "/dsw/applications",
+          icon: ClipboardCheck,
+        },
+        {
+          label: "Review History",
+          path: "/dsw/review-history",
+          icon: FileCheck,
+        },
+        {
+          label: "Semester Registration",
+          path: "/dsw/registrations",
+          icon: CalendarCheck,
+        },
+      ],
+    },
+
+    {
+      label: "Reports & Analytics",
+      items: [
+        {
+          label: "Reports & Analytics",
+          path: "/dsw/reports",
+          icon: ChartNoAxesCombined,
+        },
+        {
+          label: "Activity Log",
+          path: "/dsw/activity-log",
+          icon: History,
+        },
+      ],
+    },
+
+    {
+      label: "Account",
+      items: [
+        {
+          label: "My Profile",
+          path: "/dsw/profile",
+          icon: UserRound,
+        },
+        {
+          label: "Settings",
+          path: "/dsw/settings",
+          icon: Settings,
+        },
+      ],
+    },
+  ],
+
+  PRINCIPAL: [
+    {
+      label: "Overview",
+      items: [
+        {
+          label: "Dashboard",
+          path: "/principal/dashboard",
+          icon: LayoutDashboard,
+        },
+        {
+          label: "Bonafide Approvals",
+          path: "/principal/applications",
+          icon: ShieldCheck,
+        },
+      ],
+    },
+  ],
+
+  LIBRARIAN: [
+  {
+    label: "Library",
+    items: [
+      {
+        label: "Library Dashboard",
+        path: "/librarian/dashboard",
+        icon: BookOpen,
+      },
+      {
+        label: "Book Management",
+        path: "/librarian/books",
+        icon: BookMarked,
+      },
+      {
+        label: "Issue & Return",
+        path: "/librarian/circulation",
+        icon: CalendarCheck,
+      },
+      {
+        label: "Semester Due Verification",
+        path: "/librarian/semester-due-verification",
+        icon: ClipboardCheck,
+      },
+      {
+        label: "No-Dues Requests",
+        path: "/librarian/no-dues",
+        icon: FileCheck,
+      },
+      {
+        label: "Fine Records",
+        path: "/librarian/fines",
+        icon: Wallet,
+      },
+    ],
+  },
+],
+};
 
 export const Sidebar: React.FC<SidebarProps> = ({
   collapsed,
@@ -46,177 +366,245 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const getNavGroups = (): NavGroup[] => {
-    if (!user) return [];
+  const navGroups =
+    user?.role === "STUDENT"
+      ? studentNavGroups
+      : (roleNavGroups[user?.role ?? ""] ?? []);
 
-    switch (user.role) {
-      case 'ADMIN':
+  // Keep at most two navigation groups expanded at a time.
+  const [openGroups, setOpenGroups] = useState<string[]>(() =>
+    navGroups
+      .map((group) => group.label)
+      .filter((label) => label === "Overview" || label === "Academic Services")
+      .slice(0, 2),
+  );
+
+  // Automatically expand the group containing the current route.
+  useEffect(() => {
+    const activeGroup = navGroups.find((group) =>
+      group.items.some(
+        (item) =>
+          location.pathname === item.path ||
+          location.pathname.startsWith(`${item.path}/`),
+      ),
+    );
+
+    if (activeGroup) {
+      setOpenGroups((previous) => {
+        if (previous.includes(activeGroup.label)) return previous;
+
+        // Expand the active section and retain at most one other section.
         return [
-          {
-            items: [
-              { label: 'Dashboard', path: '/admin/dashboard', icon: <LayoutDashboard className="w-3.5 h-3.5" /> },
-            ],
-          },
-          {
-            label: 'Management',
-            items: [
-              { label: 'Staff Management', path: '/admin/staff', icon: <Users className="w-3.5 h-3.5" /> },
-              { label: 'Certificate Templates', path: '/admin/certificate-templates', icon: <FileCode className="w-3.5 h-3.5" /> },
-              { label: 'System Settings', path: '/admin/settings', icon: <Settings className="w-3.5 h-3.5" /> },
-            ],
-          },
-        ];
-
-      case 'STUDENT':
-        return [
-          {
-            items: [
-              { label: 'Dashboard', path: '/student/dashboard', icon: <LayoutDashboard className="w-3.5 h-3.5" /> },
-            ],
-          },
-          {
-            label: 'Services',
-            items: [
-              { label: 'Apply Bonafide', path: '/student/bonafide', icon: <FilePlus2 className="w-3.5 h-3.5" /> },
-              { label: 'My Applications', path: '/student/applications', icon: <FileText className="w-3.5 h-3.5" /> },
-              { label: 'My Certificates', path: '/student/certificates', icon: <Award className="w-3.5 h-3.5" /> },
-            ],
-          },
-          {
-            label: 'Account',
-            items: [
-              { label: 'My Profile', path: '/student/profile', icon: <User className="w-3.5 h-3.5" /> },
-            ],
-          },
-        ];
-
-      case 'DSW':
-        return [
-          {
-            items: [
-              { label: 'Dashboard', path: '/dsw/dashboard', icon: <LayoutDashboard className="w-3.5 h-3.5" /> },
-              { label: 'Bonafide Reviews', path: '/dsw/applications', icon: <FileText className="w-3.5 h-3.5" /> },
-            ],
-          },
-        ];
-
-      case 'PRINCIPAL':
-        return [
-          {
-            items: [
-              { label: 'Dashboard', path: '/principal/dashboard', icon: <LayoutDashboard className="w-3.5 h-3.5" /> },
-              { label: 'Bonafide Approvals', path: '/principal/applications', icon: <ShieldCheck className="w-3.5 h-3.5" /> },
-            ],
-          },
-        ];
-
-      case 'LIBRARIAN':
-        return [
-          {
-            items: [
-              { label: 'Library Dashboard', path: '/librarian/dashboard', icon: <BookOpen className="w-3.5 h-3.5" /> },
-            ],
-          },
-        ];
-
-      default:
-        return [];
+          activeGroup.label,
+          ...previous.filter((label) => label !== activeGroup.label),
+        ].slice(0, 2);
+      });
     }
+  }, [location.pathname, user?.role]);
+
+  const toggleGroup = (label: string) => {
+    setOpenGroups((previous) => {
+      if (previous.includes(label)) {
+        return previous.filter((group) => group !== label);
+      }
+
+      // Opening a third section automatically collapses the oldest one.
+      return [label, ...previous].slice(0, 2);
+    });
   };
 
   const handleLogout = () => {
     logout();
-    toast.success('Signed out', { description: 'You have been successfully signed out.' });
-    navigate('/login');
+    toast.success("Signed out", {
+      description: "You have been successfully signed out.",
+    });
+    navigate("/login");
   };
-
-  const navGroups = getNavGroups();
 
   return (
     <aside
-      className={`fixed top-0 left-0 z-40 h-screen bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col transition-all duration-200 ease-in-out ${
-        collapsed ? 'w-14' : 'w-56'
-      } ${
-        mobileOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
-      }`}
+      className={[
+        "fixed inset-y-0 left-0 z-40 flex h-dvh flex-col",
+        "border-r border-sidebar-border bg-sidebar text-sidebar-foreground",
+        "transition-[width,transform] duration-200 ease-in-out",
+        collapsed ? "w-[68px]" : "w-[280px]",
+        mobileOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+      ].join(" ")}
     >
-      {/* Brand Header */}
-      <div className="flex h-[48px] items-center px-3 border-b border-sidebar-border shrink-0">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <div className="w-6 h-6 rounded bg-primary flex items-center justify-center shrink-0 shadow-xs">
-            <GraduationCap className="w-3.5 h-3.5 text-primary-foreground" />
-          </div>
-          {!collapsed && (
-            <div className="min-w-0">
-              <div className="text-xs font-bold text-sidebar-foreground tracking-tight leading-none">PMEC</div>
-              <div className="text-[10px] text-muted-foreground leading-tight truncate">Service Portal</div>
-            </div>
-          )}
+      {/* Brand */}
+      <div
+        className={[
+          "flex h-[64px] shrink-0 items-center border-b border-sidebar-border",
+          collapsed ? "justify-center px-2" : "gap-2.5 px-4",
+        ].join(" ")}
+      >
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm">
+          <GraduationCap className="size-5" />
         </div>
+
+        {!collapsed && (
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-bold tracking-tight">PMEC</p>
+            <p className="truncate text-xs text-muted-foreground">
+              Digital Service Portal
+            </p>
+          </div>
+        )}
+
         <Button
           variant="ghost"
           size="icon"
           onClick={onToggleCollapse}
-          className="hidden md:flex h-6 w-6 shrink-0 text-muted-foreground hover:text-foreground hover:bg-accent"
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className="ml-auto hidden size-7 shrink-0 md:inline-flex"
         >
-          {collapsed ? <ChevronRight className="h-3 w-3" /> : <ChevronLeft className="h-3 w-3" />}
+          {collapsed ? (
+            <ChevronRight className="size-4" />
+          ) : (
+            <ChevronLeft className="size-4" />
+          )}
         </Button>
       </div>
 
-      {/* Role Tag */}
+      {/* Role indicator */}
       {!collapsed && user && (
-        <div className="px-3 pt-2.5 pb-1 shrink-0">
-          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-semibold bg-muted text-muted-foreground border border-border">
-            <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-            {user.role}
+        <div className="shrink-0 px-4 pb-2 pt-4">
+          <div className="inline-flex max-w-full items-center gap-2 rounded-full border border-sidebar-border bg-sidebar-accent/50 px-2.5 py-1">
+            <span className="size-2 shrink-0 rounded-full bg-primary" />
+            <span className="truncate text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">
+              {user.role}
+            </span>
           </div>
         </div>
       )}
 
-      {/* Navigation Links */}
-      <nav className="flex-1 overflow-y-auto py-2 px-2 space-y-3">
-        {navGroups.map((group, gi) => (
-          <div key={gi}>
-            {!collapsed && group.label && (
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 px-2 mb-1">
-                {group.label}
-              </p>
-            )}
-            <div className="space-y-0.5">
-              {group.items.map((item) => (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  onClick={() => onMobileClose && onMobileClose()}
-                  title={collapsed ? item.label : undefined}
-                  className={({ isActive }) =>
-                    `sidebar-nav-item ${isActive ? 'active' : ''} ${collapsed ? 'justify-center px-0' : ''}`
-                  }
+      {/* Navigation */}
+      <nav
+        aria-label="Main navigation"
+        className="flex-1 space-y-2 overflow-y-auto overflow-x-hidden px-2 py-3"
+      >
+        {navGroups.map((group) => {
+          const isOpen = openGroups.includes(group.label);
+
+          return (
+            <div key={group.label} className="space-y-1">
+              {!collapsed && (
+                <button
+                  type="button"
+                  onClick={() => toggleGroup(group.label)}
+                  aria-expanded={isOpen}
+                  className="flex w-full items-center justify-between px-2 pb-1 pt-1 text-left"
                 >
-                  <span className="shrink-0">{item.icon}</span>
-                  {!collapsed && <span className="truncate">{item.label}</span>}
-                </NavLink>
-              ))}
+                  <span className="text-[9px] font-semibold uppercase tracking-[0.1em] text-muted-foreground/80">
+                    {group.label}
+                  </span>
+
+                  <ChevronDown
+                    className={[
+                      "size-3.5 text-muted-foreground transition-transform",
+                      isOpen ? "" : "-rotate-90",
+                    ].join(" ")}
+                  />
+                </button>
+              )}
+
+              {(collapsed || isOpen) && (
+                <div className="space-y-1">
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+
+                    return (
+                      <NavLink
+                        key={item.path}
+                        to={item.path}
+                        end
+                        title={collapsed ? item.label : undefined}
+                        aria-label={collapsed ? item.label : undefined}
+                        onClick={() => onMobileClose?.()}
+                        className={({ isActive }) =>
+                          [
+                            "group relative flex min-h-8 items-center gap-2.5",
+                            "rounded-lg px-2.5 py-1.5 text-[11px] font-medium",
+                            "transition-colors duration-150",
+                            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                            collapsed ? "justify-center px-0" : "",
+                            isActive
+                              ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                              : "text-muted-foreground hover:bg-sidebar-accent/70 hover:text-sidebar-accent-foreground",
+                          ].join(" ")
+                        }
+                      >
+                        {({ isActive }) => (
+                          <>
+                            {isActive && (
+                              <span className="absolute bottom-2 left-0 top-2 w-[3px] rounded-r-full bg-primary" />
+                            )}
+
+                            <Icon
+                              className={[
+                                "size-[15px] shrink-0",
+                                isActive
+                                  ? "text-primary"
+                                  : "text-muted-foreground group-hover:text-sidebar-accent-foreground",
+                              ].join(" ")}
+                            />
+
+                            {!collapsed && (
+                              <span className="min-w-0 flex-1 truncate">
+                                {item.label}
+                              </span>
+                            )}
+                          </>
+                        )}
+                      </NavLink>
+                    );
+                  })}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </nav>
 
-      {/* Footer Profile & Logout */}
-      <div className="border-t border-sidebar-border p-2 shrink-0">
+      {/* Account footer */}
+      <div className="shrink-0 border-t border-sidebar-border p-2">
         {!collapsed && user && (
-          <div className="px-2 py-1.5 mb-1">
-            <p className="text-xs font-medium text-foreground truncate">{user.name}</p>
-            <p className="text-[10px] text-muted-foreground truncate">{user.email}</p>
-          </div>
+          <button
+            type="button"
+            onClick={() =>
+              navigate(
+                user.role === "STUDENT" ? "/student/profile" : "/profile",
+              )
+            }
+            className="mb-2 flex w-full min-w-0 items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-sidebar-accent"
+          >
+            <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+              {user.name?.charAt(0)?.toUpperCase() ?? "U"}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="truncate text-xs font-semibold">{user.name}</p>
+              <p className="truncate text-[11px] text-muted-foreground">
+                {user.email}
+              </p>
+            </div>
+          </button>
         )}
+
         <button
+          type="button"
           onClick={handleLogout}
-          title="Sign Out"
-          className={`sidebar-nav-item w-full text-destructive hover:bg-destructive/10 hover:text-destructive ${collapsed ? 'justify-center px-0' : ''}`}
+          title={collapsed ? "Sign Out" : undefined}
+          className={[
+            "flex min-h-8 w-full items-center gap-2.5 rounded-lg px-2.5 py-1.5",
+            "text-[11px] font-medium text-destructive",
+            "transition-colors hover:bg-destructive/10",
+            collapsed ? "justify-center px-0" : "",
+          ].join(" ")}
         >
-          <LogOut className="w-3.5 h-3.5 shrink-0" />
+          <LogOut className="size-[15px] shrink-0" />
           {!collapsed && <span>Sign Out</span>}
         </button>
       </div>
