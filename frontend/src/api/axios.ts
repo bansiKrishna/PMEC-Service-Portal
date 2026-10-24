@@ -28,77 +28,121 @@ apiClient.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response Interceptor: Global Error Handling
+
+/* Response Interceptor: Global Error Handling */
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    // Network errors have no HTTP response.
     if (!error.response) {
       toast.error('Network Error', {
-  description: import.meta.env.DEV
-    ? 'Unable to connect to the PMEC server. Ensure the backend is running at http://localhost:8080.'
-    : 'Unable to connect to the PMEC server. Please try again later.',
-});
+        description: import.meta.env.DEV
+          ? 'Unable to connect to the PMEC server. Check that the backend is running at http://localhost:8080.'
+          : 'Unable to connect to the PMEC server. Check your internet connection or backend availability.',
+      });
+
+      return Promise.reject(error);
     }
 
     const { status, data } = error.response;
-    const errorMessage = data?.error || data?.message || data?.detail;
+    const errorMessage =
+      data?.error || data?.message || data?.detail;
+
+    const url = error.config?.url || '';
+
+    // Do not treat failed login attempts as expired sessions.
+    const isAuthRequest =
+      /\/api\/auth\/(login|register|forgot-password|reset-password|verify-email)/i
+        .test(url);
+
     if (status === 403 && import.meta.env.DEV) {
       console.warn('API request was forbidden', {
         method: error.config?.method,
-        url: error.config?.url,
+        url,
       });
     }
 
     switch (status) {
-      case 401:
-        toast.error('Session Expired', {
-          description: 'Your session has expired or is invalid. Please log in again.',
-        });
-        useAuthStore.getState().logout();
-        if (window.location.pathname !== '/login') {
-          window.location.href = '/login';
+      case 401: {
+        const token = useAuthStore.getState().token;
+
+        // A login or registration failure should not trigger
+        // the global session-expiration redirect.
+        if (!isAuthRequest && token) {
+          toast.error('Session Expired', {
+            description:
+              'The server rejected your session. Please log in again.',
+          });
+
+          useAuthStore.getState().logout();
+
+          if (window.location.pathname !== '/login') {
+            window.location.replace('/login');
+          }
+        } else if (!isAuthRequest) {
+          toast.error('Authentication Required', {
+            description:
+              errorMessage || 'Please log in to access this resource.',
+          });
         }
+
         break;
+      }
 
       case 403:
         toast.error('Access Denied', {
-          description: 'Your account is not authorized to perform this action.',
+          description:
+            errorMessage ||
+            'Your account is not authorized to perform this action.',
         });
         break;
 
       case 404:
         toast.error('Not Found', {
-          description: errorMessage || 'The requested resource was not found on the server.',
+          description:
+            errorMessage || 'The requested resource was not found.',
         });
         break;
 
       case 409:
         toast.error('Conflict Error', {
-          description: errorMessage || 'A record with these details already exists.',
+          description:
+            errorMessage || 'A record with these details already exists.',
         });
         break;
 
-      case 422:
       case 400:
-        if (typeof data === 'object' && data !== null && !data.error && !data.message) {
-          // Field validation errors object (e.g. { email: ["Invalid email"] })
+      case 422: {
+        if (
+          typeof data === 'object' &&
+          data !== null &&
+          !data.error &&
+          !data.message
+        ) {
           const firstFieldKey = Object.keys(data)[0];
           const firstErrList = data[firstFieldKey];
-          const errDetail = Array.isArray(firstErrList) ? firstErrList[0] : String(firstErrList);
+          const errDetail = Array.isArray(firstErrList)
+            ? firstErrList[0]
+            : String(firstErrList);
+
           toast.error('Validation Error', {
             description: `${firstFieldKey}: ${errDetail}`,
           });
         } else {
           toast.error('Request Error', {
-            description: errorMessage || 'Invalid request details provided.',
+            description:
+              errorMessage || 'Invalid request details provided.',
           });
         }
         break;
+      }
 
       case 500:
       default:
         toast.error('Server Error', {
-          description: errorMessage || 'Something went wrong on the server. Please try again later.',
+          description:
+            errorMessage ||
+            'Something went wrong on the server. Please try again later.',
         });
         break;
     }
