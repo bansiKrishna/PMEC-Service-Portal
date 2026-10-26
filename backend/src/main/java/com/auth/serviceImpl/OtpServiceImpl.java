@@ -1,16 +1,19 @@
-package com.auth.serviceImpl;
+ package com.auth.serviceImpl;
 
 import com.auth.entity.OtpVerification;
 import com.auth.repository.OtpVerificationRepository;
 import com.auth.service.EmailService;
 import com.auth.service.EmailValidationService;
 import com.auth.service.OtpService;
+
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.LocalDateTime;
 
 @Service
@@ -18,6 +21,7 @@ import java.time.LocalDateTime;
 public class OtpServiceImpl implements OtpService {
 
     private static final int RESEND_COOLDOWN_SECONDS = 60;
+    private static final int OTP_EXPIRY_MINUTES = 5;
 
     private final EmailValidationService emailValidationService;
     private final OtpVerificationRepository otpRepository;
@@ -27,89 +31,130 @@ public class OtpServiceImpl implements OtpService {
 
     @Override
     public void generateAndSendOtp(String email) {
-        email = email == null ? "" : email.trim().toLowerCase();
 
+        // Normalize the email address.
+        email = email == null
+                ? ""
+                : email.trim().toLowerCase();
+
+        // Validate the college email address.
         if (!emailValidationService.isCollegeEmail(email)) {
-            throw new IllegalArgumentException(
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
                     "Only PMEC college email addresses are allowed."
             );
         }
 
         LocalDateTime now = LocalDateTime.now();
+
+        // Check the latest OTP for this email.
+        // A verified OTP must not trigger this cooldown.
         otpRepository.findTopByEmailOrderByIdDesc(email)
                 .filter(previous -> previous.getCreatedAt() != null)
-                .filter(previous -> previous.getCreatedAt()
-                        .plusSeconds(RESEND_COOLDOWN_SECONDS).isAfter(now))
+                .filter(previous ->
+                        !Boolean.TRUE.equals(previous.getVerified())
+                )
+                .filter(previous ->
+                        previous.getCreatedAt()
+                                .plusSeconds(RESEND_COOLDOWN_SECONDS)
+                                .isAfter(now)
+                )
                 .ifPresent(previous -> {
-                    long secondsRemaining = java.time.Duration.between(
+
+                    LocalDateTime allowedAt = previous.getCreatedAt()
+                            .plusSeconds(RESEND_COOLDOWN_SECONDS);
+
+                    long secondsRemaining = Duration.between(
                             now,
-                            previous.getCreatedAt().plusSeconds(RESEND_COOLDOWN_SECONDS)
+                            allowedAt
                     ).toSeconds();
+
                     throw new ResponseStatusException(
                             HttpStatus.TOO_MANY_REQUESTS,
-                            "Please wait " + (secondsRemaining + 1) + " seconds before requesting another OTP."
+                            "Please wait "
+                                    + (secondsRemaining + 1)
+                                    + " seconds before requesting another OTP."
                     );
                 });
 
+        // Generate a cryptographically secure six-digit OTP.
         String otp = String.format(
                 "%06d",
                 secureRandom.nextInt(1_000_000)
         );
 
+        // Prepare the OTP record.
         OtpVerification verification = new OtpVerification();
 
         verification.setEmail(email);
         verification.setOtp(otp);
+        verification.setCreatedAt(now);
         verification.setExpiresAt(
-                now.plusMinutes(5)
+                now.plusMinutes(OTP_EXPIRY_MINUTES)
         );
         verification.setVerified(false);
-        verification.setCreatedAt(now);
 
+        // Send the OTP email.
+        // Save the record only after the email service succeeds.
         emailService.sendOtpEmail(email, otp);
 
         otpRepository.save(verification);
     }
 
     @Override
-    public void verifyOtp(
-            String email,
-            String otp
-    ) {
-        email = email == null ? "" : email.trim().toLowerCase();
+    public void verifyOtp(String email, String otp) {
 
-        OtpVerification verification =
-                otpRepository
-                        .findTopByEmailOrderByIdDesc(email)
-                        .orElseThrow(() ->
-                                new RuntimeException(
-                                        "OTP not found!"
-                                )
-                        );
+        // Normalize the email address.
+        email = email == null
+                ? ""
+                : email.trim().toLowerCase();
 
-        if (Boolean.TRUE.equals(
-                verification.getVerified()
-        )) {
-            throw new RuntimeException(
-                    "OTP already verified!"
+        if (otp == null || otp.trim().isEmpty()) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Please enter the OTP."
             );
         }
 
-        if (LocalDateTime.now()
-                .isAfter(verification.getExpiresAt())) {
+        // Find the latest OTP associated with this email.
+        OtpVerification verification = otpRepository
+                .findTopByEmailOrderByIdDesc(email)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "OTP not found. Please request a new OTP."
+                ));
 
-            throw new RuntimeException(
-                    "OTP expired!"
+        // Prevent reuse of an already verified OTP.
+        if (Boolean.TRUE.equals(verification.getVerified())) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "OTP already verified."
             );
         }
 
-        if (!verification.getOtp().equals(otp)) {
+        // Validate the expiry timestamp.
+        LocalDateTime now = LocalDateTime.now();
 
-            throw new RuntimeException(
-                    "Invalid OTP!"
+        if (verification.getExpiresAt() == null
+                || now.isAfter(verification.getExpiresAt())) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "OTP expired. Please request a new OTP."
             );
         }
 
+        // Compare the supplied OTP with the stored OTP.
+        if (verification.getOtp() == null
+                || !verification.getOtp().equals(otp.trim())) {
+
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Invalid OTP."
+            );
+        }
+
+        // Mark the OTP as verified.
         verification.setVerified(true);
 
         otpRepository.save(verification);
