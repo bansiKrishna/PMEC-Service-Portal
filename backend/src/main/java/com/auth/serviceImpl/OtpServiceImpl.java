@@ -1,4 +1,4 @@
- package com.auth.serviceImpl;
+package com.auth.serviceImpl;
 
 import com.auth.entity.OtpVerification;
 import com.auth.repository.OtpVerificationRepository;
@@ -15,6 +15,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.LocalDateTime;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -33,9 +34,7 @@ public class OtpServiceImpl implements OtpService {
     public void generateAndSendOtp(String email) {
 
         // Normalize the email address.
-        email = email == null
-                ? ""
-                : email.trim().toLowerCase();
+        email = normalizeEmail(email);
 
         // Validate the college email address.
         if (!emailValidationService.isCollegeEmail(email)) {
@@ -48,7 +47,7 @@ public class OtpServiceImpl implements OtpService {
         LocalDateTime now = LocalDateTime.now();
 
         // Check the latest OTP for this email.
-        // A verified OTP must not trigger this cooldown.
+        // A verified OTP must not trigger the resend cooldown.
         otpRepository.findTopByEmailOrderByIdDesc(email)
                 .filter(previous -> previous.getCreatedAt() != null)
                 .filter(previous ->
@@ -79,6 +78,7 @@ public class OtpServiceImpl implements OtpService {
 
         // Generate a cryptographically secure six-digit OTP.
         String otp = String.format(
+                Locale.ROOT,
                 "%06d",
                 secureRandom.nextInt(1_000_000)
         );
@@ -94,8 +94,7 @@ public class OtpServiceImpl implements OtpService {
         );
         verification.setVerified(false);
 
-        // Send the OTP email.
-        // Save the record only after the email service succeeds.
+        // Send the email before saving the new OTP record.
         emailService.sendOtpEmail(email, otp);
 
         otpRepository.save(verification);
@@ -105,10 +104,9 @@ public class OtpServiceImpl implements OtpService {
     public void verifyOtp(String email, String otp) {
 
         // Normalize the email address.
-        email = email == null
-                ? ""
-                : email.trim().toLowerCase();
+        email = normalizeEmail(email);
 
+        // Validate the supplied OTP.
         if (otp == null || otp.trim().isEmpty()) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -132,15 +130,15 @@ public class OtpServiceImpl implements OtpService {
             );
         }
 
-        // Validate the expiry timestamp.
         LocalDateTime now = LocalDateTime.now();
 
+        // Check whether the OTP has expired.
         if (verification.getExpiresAt() == null
-                || now.isAfter(verification.getExpiresAt())) {
+                || !now.isBefore(verification.getExpiresAt())) {
 
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "OTP expired. Please request a new OTP."
+                    "OTP expired!"
             );
         }
 
@@ -150,7 +148,7 @@ public class OtpServiceImpl implements OtpService {
 
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "Invalid OTP."
+                    "Invalid OTP!"
             );
         }
 
@@ -158,5 +156,11 @@ public class OtpServiceImpl implements OtpService {
         verification.setVerified(true);
 
         otpRepository.save(verification);
+    }
+
+    private String normalizeEmail(String email) {
+        return email == null
+                ? ""
+                : email.trim().toLowerCase(Locale.ROOT);
     }
 }

@@ -1,15 +1,18 @@
-package com.auth.serviceImpl;
+ package com.auth.serviceImpl;
 
 import com.auth.entity.OtpVerification;
 import com.auth.repository.OtpVerificationRepository;
 import com.auth.service.EmailService;
 import com.auth.service.EmailValidationService;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+
 import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -20,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -42,82 +46,159 @@ class OtpServiceImplTest {
 
     @Test
     void sendsOtpAndStoresFiveMinuteExpiry() {
-        when(emailValidationService.isCollegeEmail("student@pmec.ac.in")).thenReturn(true);
+
+        when(emailValidationService.isCollegeEmail("student@pmec.ac.in"))
+                .thenReturn(true);
 
         otpService.generateAndSendOtp(" Student@PMEC.ac.in ");
 
-        ArgumentCaptor<OtpVerification> verificationCaptor = ArgumentCaptor.forClass(OtpVerification.class);
-        verify(emailService).sendOtpEmail(org.mockito.ArgumentMatchers.eq("student@pmec.ac.in"), any());
+        ArgumentCaptor<OtpVerification> verificationCaptor =
+                ArgumentCaptor.forClass(OtpVerification.class);
+
+        verify(emailService).sendOtpEmail(
+                org.mockito.ArgumentMatchers.eq("student@pmec.ac.in"),
+                any()
+        );
+
         verify(otpRepository).save(verificationCaptor.capture());
+
         OtpVerification saved = verificationCaptor.getValue();
+
         assertFalse(saved.getVerified());
         assertTrue(saved.getOtp().matches("\\d{6}"));
-        assertTrue(saved.getExpiresAt().isAfter(LocalDateTime.now().plusMinutes(4)));
-        assertTrue(saved.getExpiresAt().isBefore(LocalDateTime.now().plusMinutes(6)));
+
+        assertTrue(
+                saved.getExpiresAt().isAfter(
+                        LocalDateTime.now().plusMinutes(4)
+                )
+        );
+
+        assertTrue(
+                saved.getExpiresAt().isBefore(
+                        LocalDateTime.now().plusMinutes(6)
+                )
+        );
     }
 
     @Test
     void rejectsResendDuringCooldown() {
+
         OtpVerification previous = new OtpVerification();
         previous.setCreatedAt(LocalDateTime.now().minusSeconds(10));
-        when(emailValidationService.isCollegeEmail("student@pmec.ac.in")).thenReturn(true);
-        when(otpRepository.findTopByEmailOrderByIdDesc("student@pmec.ac.in")).thenReturn(Optional.of(previous));
+        previous.setVerified(false);
+
+        when(emailValidationService.isCollegeEmail("student@pmec.ac.in"))
+                .thenReturn(true);
+
+        when(otpRepository.findTopByEmailOrderByIdDesc("student@pmec.ac.in"))
+                .thenReturn(Optional.of(previous));
 
         ResponseStatusException exception = assertThrows(
                 ResponseStatusException.class,
                 () -> otpService.generateAndSendOtp("student@pmec.ac.in")
         );
 
-        assertEquals(HttpStatus.TOO_MANY_REQUESTS, exception.getStatusCode());
+        assertEquals(
+                HttpStatus.TOO_MANY_REQUESTS,
+                exception.getStatusCode()
+        );
+
+        assertTrue(
+                exception.getReason().contains(
+                        "Please wait"
+                )
+        );
+
         verify(emailService, never()).sendOtpEmail(any(), any());
+        verify(otpRepository, never()).save(any());
     }
 
     @Test
     void rejectsIncorrectOtp() {
-        OtpVerification verification = validOtp();
-        when(otpRepository.findTopByEmailOrderByIdDesc("student@pmec.ac.in")).thenReturn(Optional.of(verification));
 
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> otpService.verifyOtp("student@pmec.ac.in", "654321")
+        OtpVerification verification = validOtp();
+
+        when(otpRepository.findTopByEmailOrderByIdDesc("student@pmec.ac.in"))
+                .thenReturn(Optional.of(verification));
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> otpService.verifyOtp(
+                        "student@pmec.ac.in",
+                        "654321"
+                )
         );
 
-        assertEquals("Invalid OTP!", exception.getMessage());
+        assertEquals(
+                HttpStatus.BAD_REQUEST,
+                exception.getStatusCode()
+        );
+
+        assertEquals("Invalid OTP!", exception.getReason());
+
         verify(otpRepository, never()).save(any());
     }
 
     @Test
     void rejectsExpiredOtp() {
-        OtpVerification verification = validOtp();
-        verification.setExpiresAt(LocalDateTime.now().minusMinutes(1));
-        when(otpRepository.findTopByEmailOrderByIdDesc("student@pmec.ac.in")).thenReturn(Optional.of(verification));
 
-        RuntimeException exception = assertThrows(
-                RuntimeException.class,
-                () -> otpService.verifyOtp("student@pmec.ac.in", "123456")
+        OtpVerification verification = validOtp();
+
+        verification.setExpiresAt(
+                LocalDateTime.now().minusMinutes(1)
         );
 
-        assertEquals("OTP expired!", exception.getMessage());
+        when(otpRepository.findTopByEmailOrderByIdDesc("student@pmec.ac.in"))
+                .thenReturn(Optional.of(verification));
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> otpService.verifyOtp(
+                        "student@pmec.ac.in",
+                        "123456"
+                )
+        );
+
+        assertEquals(
+                HttpStatus.BAD_REQUEST,
+                exception.getStatusCode()
+        );
+
+        assertEquals("OTP expired!", exception.getReason());
+
         verify(otpRepository, never()).save(any());
     }
 
     @Test
     void acceptsCorrectOtpAndMarksItVerified() {
-        OtpVerification verification = validOtp();
-        when(otpRepository.findTopByEmailOrderByIdDesc("student@pmec.ac.in")).thenReturn(Optional.of(verification));
 
-        otpService.verifyOtp("student@pmec.ac.in", "123456");
+        OtpVerification verification = validOtp();
+
+        when(otpRepository.findTopByEmailOrderByIdDesc("student@pmec.ac.in"))
+                .thenReturn(Optional.of(verification));
+
+        otpService.verifyOtp(
+                "student@pmec.ac.in",
+                "123456"
+        );
 
         assertTrue(verification.getVerified());
+
         verify(otpRepository).save(verification);
     }
 
     private OtpVerification validOtp() {
+
         OtpVerification verification = new OtpVerification();
+
         verification.setEmail("student@pmec.ac.in");
         verification.setOtp("123456");
-        verification.setExpiresAt(LocalDateTime.now().plusMinutes(5));
+        verification.setCreatedAt(LocalDateTime.now());
+        verification.setExpiresAt(
+                LocalDateTime.now().plusMinutes(5)
+        );
         verification.setVerified(false);
+
         return verification;
     }
 }
