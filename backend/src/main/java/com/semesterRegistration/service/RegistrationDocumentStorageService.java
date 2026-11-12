@@ -1,6 +1,7 @@
 package com.semesterRegistration.service;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
@@ -16,10 +17,16 @@ public class RegistrationDocumentStorageService {
 
     public static final long MAX_FILE_SIZE_BYTES = 1024 * 1024;
 
-    private final Path receiptDirectory =
-            Path.of("uploads", "semester-registration", "receipts")
-                    .toAbsolutePath()
-                    .normalize();
+    private final Path receiptDirectory;
+
+    public RegistrationDocumentStorageService(
+            @Value("${app.upload-dir:uploads/semester-registration/receipts}")
+            String uploadDirectory
+    ) {
+        receiptDirectory = Path.of(uploadDirectory)
+                .toAbsolutePath()
+                .normalize();
+    }
 
     public StoredFile store(MultipartFile file) throws IOException {
         if (file == null || file.isEmpty()) {
@@ -74,6 +81,14 @@ public class RegistrationDocumentStorageService {
             throw new IOException("Receipt path is outside its storage directory.");
         }
         Files.deleteIfExists(path);
+    }
+
+    public byte[] read(String storagePath) throws IOException {
+        Path path = Path.of(storagePath).toAbsolutePath().normalize();
+        if (!path.startsWith(receiptDirectory)) {
+            throw new IOException("Receipt path is outside its storage directory.");
+        }
+        return Files.readAllBytes(path);
     }
 
     private DetectedType detectType(byte[] contents) {

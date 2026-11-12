@@ -91,7 +91,8 @@ public class BonafideController {
     // =====================================================
 
     @GetMapping("/dsw/pending")
-        @PreAuthorize("hasRole('DSW')")
+    @PreAuthorize("hasRole('DSW')")
+    @Deprecated
     public ResponseEntity<
             List<BonafideApplicationResponseDto>>
     dswPending() {
@@ -101,8 +102,16 @@ public class BonafideController {
         );
     }
 
+    @GetMapping("/dsw/history")
+    @PreAuthorize("hasRole('DSW')")
+    @Deprecated
+    public ResponseEntity<List<BonafideApplicationResponseDto>> dswHistory() {
+        return ResponseEntity.ok(bonafideService.getDswReviewHistory());
+    }
+
     @GetMapping("/dsw/{id}")
     @PreAuthorize("hasRole('DSW')")
+    @Deprecated
     public ResponseEntity<BonafideApplicationResponseDto> getDswApplication(
         @PathVariable Long id) {
 
@@ -112,7 +121,8 @@ public class BonafideController {
 }
 
     @PutMapping("/dsw/{id}/approve")
-        @PreAuthorize("hasRole('DSW')")
+    @PreAuthorize("hasRole('DSW')")
+    @Deprecated
     public ResponseEntity<Void>
     dswApprove(
             @PathVariable Long id) {
@@ -124,7 +134,8 @@ public class BonafideController {
 
 
     @PutMapping("/dsw/{id}/reject")
-        @PreAuthorize("hasRole('DSW')")
+    @PreAuthorize("hasRole('DSW')")
+    @Deprecated
     public ResponseEntity<Void>
     dswReject(
             @PathVariable Long id,
@@ -147,7 +158,8 @@ public class BonafideController {
     // =====================================================
 
     @GetMapping("/principal/pending")
-        @PreAuthorize("hasRole('PRINCIPAL')")
+    @PreAuthorize("hasRole('PRINCIPAL')")
+    @Deprecated
     public ResponseEntity<
             List<BonafideApplicationResponseDto>>
     principalPending() {
@@ -161,16 +173,18 @@ public class BonafideController {
 
     @GetMapping("/principal/{id}")
     @PreAuthorize("hasRole('PRINCIPAL')")
+    @Deprecated
     public ResponseEntity<BonafideApplicationResponseDto> getPrincipalApplication(
         @PathVariable Long id) {
 
     return ResponseEntity.ok(
-            bonafideService.getById(id)
+            bonafideService.getPrincipalApplicationById(id)
     );
 }
 
     @PutMapping("/principal/{id}/approve")
-        @PreAuthorize("hasRole('PRINCIPAL')")
+    @PreAuthorize("hasRole('PRINCIPAL')")
+    @Deprecated
     public ResponseEntity<Void>
     principalApprove(
             @PathVariable Long id) {
@@ -183,7 +197,8 @@ public class BonafideController {
 
 
     @PutMapping("/principal/{id}/reject")
-        @PreAuthorize("hasRole('PRINCIPAL')")
+    @PreAuthorize("hasRole('PRINCIPAL')")
+    @Deprecated
     public ResponseEntity<Void>
     principalReject(
             @PathVariable Long id,

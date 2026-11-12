@@ -21,6 +21,10 @@ import java.time.LocalDateTime;
                                 "semester"
                         }
                 )
+        },
+        indexes = {
+                @Index(name = "idx_semreg_status_updated",
+                        columnList = "status, updated_at")
         }
 )
 @Getter

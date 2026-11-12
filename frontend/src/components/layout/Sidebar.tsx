@@ -1,44 +1,27 @@
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import {
   LayoutDashboard,
-  Bell,
   ClipboardList,
   BookOpen,
-  CalendarDays,
   GraduationCap,
-  ChartNoAxesColumn,
   FileBadge,
   FileCheck,
-  IdCard,
   ClipboardCheck,
-  CreditCard,
-  Award,
-  House,
-  // Library,
-  // BriefcaseBusiness,
-  // MessageSquareWarning,
   FileClock,
-  Clock3,
   Download,
   UserRound,
-  Settings,
   Users,
   FileCode,
-  History,
   ShieldCheck,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
   LogOut,
-  BookMarked,
   CalendarCheck,
-  Wallet,
   Settings2,
   Mail,
-  ChartNoAxesCombined,
-  // Building2,
 } from "lucide-react";
 
 import type { LucideIcon } from "lucide-react";
@@ -72,11 +55,6 @@ const studentNavGroups: NavGroup[] = [
         path: "/student/dashboard",
         icon: LayoutDashboard,
       },
-      {
-        label: "Notifications",
-        path: "/student/notifications",
-        icon: Bell,
-      },
     ],
   },
   {
@@ -86,26 +64,6 @@ const studentNavGroups: NavGroup[] = [
         label: "Semester Registration",
         path: "/student/semester-registration",
         icon: ClipboardList,
-      },
-      {
-        label: "Subject Registration",
-        path: "/student/subject-registration",
-        icon: BookOpen,
-      },
-      {
-        label: "Academic Calendar & Timetable",
-        path: "/student/academic-calendar",
-        icon: CalendarDays,
-      },
-      {
-        label: "Examination Services",
-        path: "/student/examinations",
-        icon: GraduationCap,
-      },
-      {
-        label: "Attendance & Internal Marks",
-        path: "/student/attendance",
-        icon: ChartNoAxesColumn,
       },
     ],
   },
@@ -117,41 +75,6 @@ const studentNavGroups: NavGroup[] = [
         path: "/student/bonafide",
         icon: FileBadge,
       },
-      {
-        label: "NOC & Permission Letters",
-        path: "/student/noc-requests",
-        icon: FileCheck,
-      },
-      {
-        label: "Student ID Card",
-        path: "/student/id-card",
-        icon: IdCard,
-      },
-      {
-        label: "No-Dues & Clearance",
-        path: "/student/no-dues",
-        icon: ClipboardCheck,
-      },
-    ],
-  },
-  {
-    label: "Financial & Welfare",
-    items: [
-      {
-        label: "Fees & Receipts",
-        path: "/student/fees",
-        icon: CreditCard,
-      },
-      {
-        label: "Scholarship & verification",
-        path: "/student/scholarships",
-        icon: Award,
-      },
-      {
-        label: "Hostel & Mess",
-        path: "/student/hostel",
-        icon: House,
-      },
     ],
   },
 
@@ -162,11 +85,6 @@ const studentNavGroups: NavGroup[] = [
         label: "My Applications",
         path: "/student/applications",
         icon: FileClock,
-      },
-      {
-        label: "Application Tracking",
-        path: "/student/application-tracking",
-        icon: Clock3,
       },
       {
         label: "Issued Documents",
@@ -182,11 +100,6 @@ const studentNavGroups: NavGroup[] = [
         label: "My Profile",
         path: "/student/profile",
         icon: UserRound,
-      },
-      {
-        label: "Settings & Security",
-        path: "/student/settings",
-        icon: Settings,
       },
     ],
   },
@@ -245,11 +158,6 @@ const roleNavGroups: Record<string, NavGroup[]> = {
           path: "/dsw/dashboard",
           icon: LayoutDashboard,
         },
-        {
-          label: "Notifications",
-          path: "/dsw/notifications",
-          icon: Bell,
-        },
       ],
     },
 
@@ -257,7 +165,7 @@ const roleNavGroups: Record<string, NavGroup[]> = {
       label: "Service Management",
       items: [
         {
-          label: "Pending Applications",
+          label: "Bonafide Applications",
           path: "/dsw/applications",
           icon: ClipboardCheck,
         },
@@ -274,37 +182,6 @@ const roleNavGroups: Record<string, NavGroup[]> = {
       ],
     },
 
-    {
-      label: "Reports & Analytics",
-      items: [
-        {
-          label: "Reports & Analytics",
-          path: "/dsw/reports",
-          icon: ChartNoAxesCombined,
-        },
-        {
-          label: "Activity Log",
-          path: "/dsw/activity-log",
-          icon: History,
-        },
-      ],
-    },
-
-    {
-      label: "Account",
-      items: [
-        {
-          label: "My Profile",
-          path: "/dsw/profile",
-          icon: UserRound,
-        },
-        {
-          label: "Settings",
-          path: "/dsw/settings",
-          icon: Settings,
-        },
-      ],
-    },
   ],
 
   PRINCIPAL: [
@@ -317,9 +194,14 @@ const roleNavGroups: Record<string, NavGroup[]> = {
           icon: LayoutDashboard,
         },
         {
-          label: "Bonafide Approvals",
+          label: "Bonafide Applications",
           path: "/principal/applications",
           icon: ShieldCheck,
+        },
+        {
+          label: "Semester Registrations",
+          path: "/principal/registrations",
+          icon: CalendarCheck,
         },
       ],
     },
@@ -335,29 +217,14 @@ const roleNavGroups: Record<string, NavGroup[]> = {
         icon: BookOpen,
       },
       {
-        label: "Book Management",
-        path: "/librarian/books",
-        icon: BookMarked,
-      },
-      {
-        label: "Issue & Return",
-        path: "/librarian/circulation",
-        icon: CalendarCheck,
-      },
-      {
-        label: "Semester Due Verification",
-        path: "/librarian/semester-due-verification",
+        label: "Assigned Applications",
+        path: "/librarian/applications",
         icon: ClipboardCheck,
       },
       {
-        label: "No-Dues Requests",
-        path: "/librarian/no-dues",
+        label: "Review History",
+        path: "/librarian/review-history",
         icon: FileCheck,
-      },
-      {
-        label: "Fine Records",
-        path: "/librarian/fines",
-        icon: Wallet,
       },
     ],
   },
@@ -370,7 +237,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   mobileOpen = false,
   onMobileClose,
 }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, getDefaultRedirectPath } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -380,15 +247,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       : (roleNavGroups[user?.role ?? ""] ?? []);
 
   // Keep at most two navigation groups expanded at a time.
-  const [openGroups, setOpenGroups] = useState<string[]>(() =>
-    navGroups
-      .map((group) => group.label)
-      .filter((label) => label === "Overview" || label === "Academic Services")
-      .slice(0, 2),
-  );
-
-  // Automatically expand the group containing the current route.
-  useEffect(() => {
+  const [openGroups, setOpenGroups] = useState<string[]>(() => {
     const activeGroup = navGroups.find((group) =>
       group.items.some(
         (item) =>
@@ -396,19 +255,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           location.pathname.startsWith(`${item.path}/`),
       ),
     );
-
-    if (activeGroup) {
-      setOpenGroups((previous) => {
-        if (previous.includes(activeGroup.label)) return previous;
-
-        // Expand the active section and retain at most one other section.
-        return [
-          activeGroup.label,
-          ...previous.filter((label) => label !== activeGroup.label),
-        ].slice(0, 2);
-      });
-    }
-  }, [location.pathname, user?.role]);
+    return activeGroup
+      ? [activeGroup.label]
+      : navGroups.map((group) => group.label).slice(0, 1);
+  });
 
   const toggleGroup = (label: string) => {
     setOpenGroups((previous) => {
@@ -581,7 +431,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
             type="button"
             onClick={() =>
               navigate(
-                user.role === "STUDENT" ? "/student/profile" : "/profile",
+                user.role === "STUDENT"
+                  ? "/student/profile"
+                  : getDefaultRedirectPath(),
               )
             }
             className="mb-2 flex w-full min-w-0 items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-sidebar-accent"

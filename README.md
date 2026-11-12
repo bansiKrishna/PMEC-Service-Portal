@@ -200,11 +200,10 @@ the user sees.
 - `frontend/src/api/axios.ts` attaches the token to API requests. The backend
   `JwtAuthenticationFilter.java` checks it, and `SecurityConfig.java` defines
   which endpoints need authentication and which roles are allowed.
-- The roles represented in the project are `ADMIN`, `STUDENT`, `DSW`,
-  `PRINCIPAL`, and `LIBRARIAN`.
-- OTP send/verify endpoints and OTP-related backend classes exist. The current
-  registration screen calls the registration endpoint directly; it does not
-  call the OTP endpoints as part of that screen's flow.
+- The roles represented in the project include `ADMIN`, `STUDENT`, `DSW`,
+  `PRINCIPAL`, `LIBRARIAN`, and `BRANCH_STAFF`.
+- Student registration requests an email OTP, verifies it, and requires a
+  verified OTP before submitting account registration.
 
 ### Bonafide application flow
 
@@ -228,12 +227,33 @@ DSW, and Principal screens are under `frontend/src/pages/student/`,
 `frontend/src/pages/dsw/`, and `frontend/src/pages/principal/`. Their API
 functions are in `studentApi.ts`, `dswApi.ts`, and `principalApi.ts`.
 
+DSW and Principal Bonafide lists use the canonical `/api/dsw/bonafide` and
+`/api/principal/bonafide` routes. Both return `pending`, `approved`, `rejected`,
+and `total` summary counts and support `ALL`, `PENDING`, `APPROVED`, and
+`REJECTED` filters. Status-to-tab grouping is implemented by the backend so
+the frontend uses the returned groups without reclassifying workflow status.
+Legacy `/api/bonafide/dsw/**` and `/api/bonafide/principal/**` routes remain
+available for compatibility.
+
+Semester Registration reviewer lists are available to Librarian, DSW, and
+Principal at `/api/semester-registration/reviews` and its `/summary` endpoint.
+The list response is intentionally lightweight; a row's details, subjects,
+fees, documents, and review history load separately. Principal access is
+read-only, and Principal lists classify by overall registration status while
+Librarian and DSW lists classify by their own latest review decision.
+
 On approval, the backend uses the certificate template and signature, fills in
 application and student details, renders a PDF, and stores the generated file.
 The relevant code is under `backend/src/main/java/com/bonafide/service/`,
 `serviceImpl/`, and `file/`. The active default HTML template is
 `backend/src/main/resources/bonafide-template.html`; uploaded files are stored
 under the backend's local `uploads/` directories.
+
+The backend caches authenticated user details for 30 seconds to reduce
+repeated database lookups. Disabling an account or changing its role may
+therefore take up to 30 seconds to affect existing JWT requests. Frontend
+query data is cleared on logout so one account's cached results are not reused
+by the next login.
 
 ## File-by-file guide
 
@@ -454,6 +474,9 @@ Set these variables in `backend/.env` using values from your Supabase project:
 - `JWT_SECRET` — Base64-encoded signing key.
 - `EMAIL_SETTINGS_ENCRYPTION_KEY` — Base64-encoded random 32-byte key. Keep it
   outside the database and do not change it after email settings have been saved.
+- `INITIAL_ADMIN_PASSWORD` — only required when bootstrapping a database that
+  does not yet contain `admin@pmec.ac.in`. The application never creates or logs
+  a built-in default password.
 
 Generate the email encryption key in PowerShell without printing or storing any
 other credentials:
@@ -489,10 +512,50 @@ port `587`, authentication, and STARTTLS. The email App Password is encrypted
 with `EMAIL_SETTINGS_ENCRYPTION_KEY` in the database and is never returned by
 the API. The Flyway migration creates the settings table automatically.
 
-The frontend defaults to the backend at `http://localhost:8080`. To use another
-backend URL, set `VITE_API_BASE_URL` for the Vite frontend environment. Useful
+Set `VITE_API_BASE_URL=http://localhost:8080` in the frontend's local Vite
+environment to target a local backend. The application fails fast if that URL
+is missing. Useful
 frontend checks are `npm run build` and `npm run lint`; the backend tests can be
 run with `.\mvnw.cmd test` from `backend/`.
+
+## Redeployment checklist
+
+### Vercel
+
+- Set the project root directory to `frontend`.
+- Install with `npm ci`, build with `npm run build`, and use `dist` as the
+  output directory.
+- Set `VITE_API_BASE_URL` to the HTTPS base URL of the Render API service
+  (without an `/api` suffix).
+- Keep the existing `frontend/vercel.json` SPA rewrite so direct route refreshes
+  resolve to the React application.
+
+### Render
+
+- Set the backend root directory to `backend` and deploy with its Dockerfile;
+  the image builds with Java 21 and starts the packaged Spring Boot service.
+- Configure `SUPABASE_DB_URL`, `SUPABASE_DB_USERNAME`, `SUPABASE_DB_PASSWORD`,
+  and a strong Base64-encoded `JWT_SECRET`. `JWT_EXPIRATION` and `PORT` are
+  optional; Render supplies `PORT`.
+- Set `CORS_ALLOWED_ORIGINS` to the comma-separated, exact HTTPS Vercel
+  production origin and any approved preview origins.
+- Set `EMAIL_SETTINGS_ENCRYPTION_KEY` to the Base64-encoded random 32-byte key
+  used for the existing saved SMTP credential. Do not rotate it without
+  re-encrypting the stored credential.
+- Configure the Gmail sender and App Password in **Admin → Email Service
+  Settings** after deployment. The backend uses Gmail SMTP on port 587 with
+  STARTTLS; no SMTP password belongs in frontend variables or logs.
+- On a fresh database only, set `INITIAL_ADMIN_PASSWORD` to bootstrap
+  `admin@pmec.ac.in`. The application no longer creates or prints a default
+  password. Keep this variable private and remove it after first initialization.
+- Attach persistent storage mounted at `/app/uploads` so certificate templates,
+  signatures, and generated certificates survive container replacement. Set
+  `APP_UPLOAD_DIR` to `/app/uploads/semester-registration/receipts` for new
+  semester-registration documents. Existing local file paths must be copied to
+  the persistent volume before redeploying or their files will remain
+  unavailable.
+- The frontend and backend builds do not verify live SMTP, CORS, database
+  credentials, or storage persistence; test those integrations after deploy.
 
 ## How to add a feature later
 

@@ -5,6 +5,7 @@ import com.bonafide.entity.*;
 import com.bonafide.repository.*;
 
 import com.bonafide.service.BonafideService;
+import com.bonafide.service.BonafideReviewGroups;
 import com.bonafide.service.CertificateGenerationService;
 
 import com.exception.BadRequestException;
@@ -19,15 +20,21 @@ import lombok.RequiredArgsConstructor;
 
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.data.domain.PageRequest;
 
 import java.time.LocalDateTime;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 @Transactional
 public class BonafideServiceImpl
         implements BonafideService {
+
+    private static final int LIST_LIMIT = 1_000;
 
     private final BonafideApplicationRepository
             applicationRepository;
@@ -122,6 +129,7 @@ public class BonafideServiceImpl
     // =====================================================
 
     @Override
+    @Transactional(readOnly = true)
     public BonafideApplicationResponseDto getById(
             Long id) {
 
@@ -134,7 +142,8 @@ public class BonafideServiceImpl
     }
 
         @Override
-        public BonafideStatusResponseDto getStatus(Long id) {
+    @Transactional(readOnly = true)
+    public BonafideStatusResponseDto getStatus(Long id) {
                 BonafideApplication application = getApplication(id);
                 requireStudentOwner(application);
 
@@ -147,12 +156,56 @@ public class BonafideServiceImpl
                 );
         }
 
+        private BonafideSummaryDto getSummary(BonafideReviewGroups.Viewer viewer) {
+                Set<BonafideStatus> allStatuses = BonafideReviewGroups.statuses(
+                        viewer,
+                        BonafideReviewGroups.Tab.ALL
+                );
+                Map<BonafideStatus, Long> counts = new EnumMap<>(BonafideStatus.class);
+                for (Object[] row : applicationRepository.countGroupedByStatus(allStatuses)) {
+                    counts.put((BonafideStatus) row[0], ((Number) row[1]).longValue());
+                }
+
+                long pending = countForTab(
+                        viewer,
+                        BonafideReviewGroups.Tab.PENDING,
+                        counts
+                );
+                long approved = countForTab(
+                        viewer,
+                        BonafideReviewGroups.Tab.APPROVED,
+                        counts
+                );
+                long rejected = countForTab(
+                        viewer,
+                        BonafideReviewGroups.Tab.REJECTED,
+                        counts
+                );
+                return new BonafideSummaryDto(
+                        pending,
+                        approved,
+                        rejected,
+                        pending + approved + rejected
+                );
+        }
+
+        private long countForTab(
+                    BonafideReviewGroups.Viewer viewer,
+                    BonafideReviewGroups.Tab tab,
+                    Map<BonafideStatus, Long> counts
+        ) {
+                return BonafideReviewGroups.statuses(viewer, tab).stream()
+                        .mapToLong(status -> counts.getOrDefault(status, 0L))
+                        .sum();
+        }
+
 
     // =====================================================
     // STUDENT MY APPLICATIONS
     // =====================================================
 
     @Override
+    @Transactional(readOnly = true)
     public List<BonafideApplicationResponseDto>
     getMyApplications() {
 
@@ -160,7 +213,7 @@ public class BonafideServiceImpl
                 currentUserService.getCurrentUser();
 
         return applicationRepository
-                .findByStudentId(student.getId())
+                .findByStudentIdOrderByCreatedAtDesc(student.getId())
                 .stream()
                 .map(this::mapToResponse)
                 .toList();
@@ -232,22 +285,59 @@ public class BonafideServiceImpl
 // =====================================================
 
 @Override
+@Transactional(readOnly = true)
 public List<BonafideApplicationResponseDto>
 getPendingForDsw() {
-
-    return applicationRepository
-            .findByStatus(
-                    BonafideStatus.PENDING_DSW
-            )
-            .stream()
-            .map(this::mapToResponse)
-            .toList();
+    return getDswApplications("PENDING");
 }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<BonafideApplicationResponseDto> getDswReviewHistory() {
+        return applicationRepository.findByStatusInOrderByUpdatedAtDesc(
+                        List.of(
+                                BonafideStatus.DSW_APPROVED,
+                                BonafideStatus.DSW_REJECTED,
+                                BonafideStatus.PENDING_PRINCIPAL,
+                                BonafideStatus.PRINCIPAL_APPROVED,
+                                BonafideStatus.PRINCIPAL_REJECTED,
+                                BonafideStatus.CERTIFICATE_GENERATED
+                        ),
+                        PageRequest.of(0, LIST_LIMIT)
+                )
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
 @Override
+@Transactional(readOnly = true)
 public BonafideApplicationResponseDto getDswApplicationById(Long id) {
     return mapToResponse(getApplication(id));
 }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<BonafideApplicationResponseDto> getDswApplications(String tab) {
+        Set<BonafideStatus> statuses = BonafideReviewGroups.statuses(
+                BonafideReviewGroups.Viewer.DSW,
+                BonafideReviewGroups.Tab.parse(tab)
+        );
+        return applicationRepository
+                .findByStatusInOrderByUpdatedAtDesc(
+                        statuses,
+                        PageRequest.of(0, LIST_LIMIT)
+                )
+                .stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BonafideSummaryDto getDswSummary() {
+        return getSummary(BonafideReviewGroups.Viewer.DSW);
+    }
 
 
     // =====================================================
@@ -277,8 +367,8 @@ public BonafideApplicationResponseDto getDswApplicationById(Long id) {
         BonafideApplication application =
                 getApplication(applicationId);
 
-        if (application.getStatus()
-                != BonafideStatus.PENDING_DSW) {
+        if (application.getStatus() != BonafideStatus.PENDING_DSW
+                && application.getStatus() != BonafideStatus.SUBMITTED) {
 
             throw new BadRequestException(
                     "Only pending DSW applications can be approved by DSW"
@@ -321,8 +411,8 @@ public BonafideApplicationResponseDto getDswApplicationById(Long id) {
         BonafideApplication application =
                 getApplication(id);
 
-        if (application.getStatus()
-                != BonafideStatus.PENDING_DSW) {
+        if (application.getStatus() != BonafideStatus.PENDING_DSW
+                && application.getStatus() != BonafideStatus.SUBMITTED) {
 
             throw new BadRequestException(
                     "Only pending DSW applications can be rejected by DSW"
@@ -361,17 +451,40 @@ public BonafideApplicationResponseDto getDswApplicationById(Long id) {
     // =====================================================
 
     @Override
+    @Transactional(readOnly = true)
     public List<BonafideApplicationResponseDto>
-    getPendingForPrincipal() {
+        getPendingForPrincipal() {
+            return getPrincipalApplications("PENDING");
+        }
 
-        return applicationRepository
-                .findByStatus(
-                        BonafideStatus.PENDING_PRINCIPAL
-                )
-                .stream()
-                .map(this::mapToResponse)
-                .toList();
-    }
+        @Override
+        @Transactional(readOnly = true)
+        public List<BonafideApplicationResponseDto> getPrincipalApplications(String tab) {
+            Set<BonafideStatus> statuses = BonafideReviewGroups.statuses(
+                    BonafideReviewGroups.Viewer.PRINCIPAL,
+                    BonafideReviewGroups.Tab.parse(tab)
+            );
+            return applicationRepository
+                    .findByStatusInOrderByUpdatedAtDesc(
+                            statuses,
+                            PageRequest.of(0, LIST_LIMIT)
+                    )
+                    .stream()
+                    .map(this::mapToResponse)
+                    .toList();
+        }
+
+        @Override
+        @Transactional(readOnly = true)
+        public BonafideSummaryDto getPrincipalSummary() {
+            return getSummary(BonafideReviewGroups.Viewer.PRINCIPAL);
+        }
+
+        @Override
+        @Transactional(readOnly = true)
+        public BonafideApplicationResponseDto getPrincipalApplicationById(Long id) {
+            return mapToResponse(getApplication(id));
+        }
 
 
     // =====================================================
@@ -385,8 +498,8 @@ public BonafideApplicationResponseDto getDswApplicationById(Long id) {
                 getApplication(id);
 
         // DSW approval should set status to PENDING_PRINCIPAL, so principal can approve now
-        if (application.getStatus()
-                != BonafideStatus.PENDING_PRINCIPAL) {
+        if (application.getStatus() != BonafideStatus.PENDING_PRINCIPAL
+                && application.getStatus() != BonafideStatus.DSW_APPROVED) {
 
             throw new BadRequestException(
                     "Application must be DSW approved first"
@@ -433,8 +546,8 @@ public BonafideApplicationResponseDto getDswApplicationById(Long id) {
                 getApplication(id);
 
         // Principal can reject only after DSW has approved (status PENDING_PRINCIPAL)
-        if (application.getStatus()
-                != BonafideStatus.PENDING_PRINCIPAL) {
+        if (application.getStatus() != BonafideStatus.PENDING_PRINCIPAL
+                && application.getStatus() != BonafideStatus.DSW_APPROVED) {
 
             throw new BadRequestException(
                     "Application must be DSW approved first"
@@ -468,6 +581,7 @@ public BonafideApplicationResponseDto getDswApplicationById(Long id) {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<BonafideApplicationResponseDto> getApplicationsForDsw() {
         return getPendingForDsw();
     }
@@ -526,7 +640,7 @@ public BonafideApplicationResponseDto getDswApplicationById(Long id) {
             Long id) {
 
         return applicationRepository
-                .findById(id)
+                .findWithStudentById(id)
                 .orElseThrow(() ->
                         new ResourceNotFoundException(
                                 "Bonafide application not found: "
@@ -623,10 +737,6 @@ public BonafideApplicationResponseDto getDswApplicationById(Long id) {
                 .build();
     }
 }
-
-
-
-
 
 
 

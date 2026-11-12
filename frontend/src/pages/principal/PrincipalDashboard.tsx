@@ -1,156 +1,121 @@
-import React, { useState, useEffect } from 'react';
+import type { FC } from 'react';
+import { ArrowRight, RefreshCw } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'sonner';
-import { ShieldCheck, Clock, Award, ArrowRight, RefreshCw, FileText } from 'lucide-react';
-import { principalApi } from '../../api/principalApi';
-import type { BonafideApplicationResponseDto } from '../../types/bonafide';
-import { Button } from '../../components/ui/button';
-import { StatusBadge } from '../../components/common/StatusBadge';
-import { LoadingState } from '../../components/common/LoadingState';
+import { ErrorState } from '../../components/common/ErrorState';
 import { EmptyState } from '../../components/common/EmptyState';
+import { ReviewSummaryCards } from '../../components/common/ReviewSummaryCards';
+import { StatusBadge } from '../../components/common/StatusBadge';
+import { TableSkeleton } from '../../components/common/TableSkeleton';
+import { Button } from '../../components/ui/button';
+import {
+  useBonafideList,
+  useBonafideSummary,
+} from '../../hooks/queries/useBonafideReview';
 import { formatDate } from '../../lib/utils';
 
-export const PrincipalDashboard: React.FC = () => {
-  const [applications, setApplications] = useState<BonafideApplicationResponseDto[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-
+export const PrincipalDashboard: FC = () => {
   const navigate = useNavigate();
+  const summary = useBonafideSummary('principal');
+  const pending = useBonafideList('principal', 'PENDING');
 
-  const fetchPending = async () => {
-    setLoading(true);
-    try {
-      const data = await principalApi.getPendingApplications();
-      setApplications(data);
-    } catch (error) {
-      console.error('Error fetching Principal applications:', error);
-      toast.error('Failed to load Principal approvals');
-    } finally {
-      setLoading(false);
-    }
+  const openApplications = (tab: string) => {
+    navigate(`/principal/applications?tab=${tab}`);
   };
 
-  useEffect(() => {
-    fetchPending();
-  }, []);
-
-  if (loading) return <LoadingState message="Loading Principal Executive Desk..." />;
+  if (summary.isError && !summary.data) {
+    return (
+      <ErrorState
+        title="Could not load Bonafide summary"
+        onRetry={() => void summary.refetch()}
+      />
+    );
+  }
 
   return (
-    <div className="space-y-4">
-      {/* Page Header */}
-      <div className="page-header">
+    <section className="space-y-4">
+      <header className="page-header">
         <div>
           <h1 className="page-title">Principal Approval Desk</h1>
           <p className="page-description">
-            Final executive sanction and automated PDF certificate generation.
+            Review applications forwarded for final approval and certificate generation.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={fetchPending} className="gap-1.5 shrink-0">
-            <RefreshCw className="w-3.5 h-3.5" /> Refresh
-          </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1.5"
+          onClick={() => {
+            void summary.refetch();
+            void pending.refetch();
+          }}
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${pending.isFetching ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </header>
+
+      <ReviewSummaryCards
+        summary={summary.data}
+        loading={summary.isPending}
+        activeTab="PENDING"
+        onSelect={(tab) => openApplications(tab)}
+      />
+
+      <div className="content-card">
+        <div className="flex items-center justify-between border-b border-border px-4 py-3">
+          <div>
+            <h2 className="text-sm font-semibold">Recent pending applications</h2>
+            <p className="text-xs text-muted-foreground">
+              Applications forwarded by DSW for final sanction.
+            </p>
+          </div>
           <Button
             size="sm"
-            onClick={() => navigate('/principal/applications')}
-            className="gap-1.5 shrink-0"
+            variant="ghost"
+            className="gap-1"
+            onClick={() => openApplications('PENDING')}
           >
-            <FileText className="w-3.5 h-3.5" /> Review ({applications.length})
+            View all <ArrowRight className="h-3.5 w-3.5" />
           </Button>
         </div>
-      </div>
-
-      {/* Stat Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        <div className="stat-card p-3.5 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Forwarded by DSW</span>
-            <div className="w-6 h-6 rounded bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <Clock className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div>
-            <div className="text-xl font-bold tracking-tight text-foreground font-mono">{applications.length}</div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Pending Principal Action</p>
-          </div>
-        </div>
-
-        <div className="stat-card p-3.5 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">PDF Synthesis</span>
-            <div className="w-6 h-6 rounded bg-emerald-500/10 text-emerald-400 flex items-center justify-center shrink-0">
-              <Award className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div>
-            <div className="text-sm font-semibold tracking-tight text-foreground">Automated PDF Engine</div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Generates on Approval</p>
-          </div>
-        </div>
-
-        <div className="stat-card p-3.5 flex flex-col justify-between">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Sanction Authority</span>
-            <div className="w-6 h-6 rounded bg-primary/10 text-primary flex items-center justify-center shrink-0">
-              <ShieldCheck className="w-3.5 h-3.5" />
-            </div>
-          </div>
-          <div>
-            <div className="text-sm font-semibold tracking-tight text-foreground">Final Executive Sanction</div>
-            <p className="text-[11px] text-muted-foreground mt-0.5">ROLE_PRINCIPAL authority</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Applications list */}
-      <div className="content-card">
-        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
-          <div>
-            <h2 className="text-xs font-semibold text-foreground">Awaiting Principal Approval</h2>
-            <p className="text-[11px] text-muted-foreground">Applications approved by DSW and forwarded for final sanction</p>
-          </div>
-        </div>
-
-        {applications.length === 0 ? (
-          <EmptyState
-            title="No Applications Pending Principal Sanction"
-            description="There are currently no DSW-approved applications awaiting Principal action."
+        {pending.isError && !pending.data ? (
+          <ErrorState
+            title="Could not load pending applications"
+            onRetry={() => void pending.refetch()}
           />
-        ) : (
+        ) : pending.isPending && !pending.data ? (
+          <div className="p-4"><TableSkeleton rows={5} columns={4} /></div>
+        ) : pending.data?.length ? (
           <div className="divide-y divide-border">
-            {applications.map((app) => (
-              <div
-                key={app.id}
-                onClick={() => navigate(`/principal/applications/${app.id}`)}
-                className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 py-2.5 hover:bg-muted/40 cursor-pointer transition-colors gap-2"
+            {pending.data.slice(0, 5).map((application) => (
+              <button
+                type="button"
+                key={application.id}
+                onClick={() => navigate(`/principal/applications/${application.id}`)}
+                className="flex w-full flex-col gap-2 px-4 py-3 text-left transition-colors hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between"
               >
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-medium text-foreground">
-                      App #{app.id} • {app.studentName || `Student ID ${app.studentId}`}
-                    </span>
-                    {app.rollNumber && (
-                      <span className="text-[11px] text-muted-foreground font-mono">({app.rollNumber})</span>
-                    )}
-                  </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">
-                    Dept: {app.department || 'N/A'} • Reason: {app.reason}
-                  </p>
-                  <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-                    Submitted: {formatDate(app.createdAt)}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2 shrink-0">
-                  <StatusBadge status={app.status} />
-                  <Button size="sm" className="h-7 text-xs gap-1">
-                    Sanction <ArrowRight className="w-3 h-3" />
-                  </Button>
-                </div>
-              </div>
+                <span>
+                  <span className="block text-sm font-medium">
+                    #{application.id} — {application.studentName || `Student #${application.studentId}`}
+                  </span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    {application.department || 'Department unavailable'} · {application.reason}
+                  </span>
+                  <span className="mt-1 block text-[11px] text-muted-foreground">
+                    {formatDate(application.createdAt)}
+                  </span>
+                </span>
+                <StatusBadge status={application.status} />
+              </button>
             ))}
           </div>
+        ) : (
+          <EmptyState
+            title="No pending applications"
+            description="There are no Bonafide applications awaiting Principal review."
+          />
         )}
       </div>
-    </div>
+    </section>
   );
 };

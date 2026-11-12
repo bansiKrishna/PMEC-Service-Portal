@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { AuthState, LoginResponse } from '../types/auth';
 import type { Role } from '../types/user';
+import { queryClient } from '../lib/queryClient';
 
 const TOKEN_KEY = 'pmec_auth_token';
 const USER_KEY = 'pmec_auth_user';
@@ -44,6 +45,7 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: () => {
+    queryClient.clear();
     try {
       localStorage.removeItem(TOKEN_KEY);
       localStorage.removeItem(USER_KEY);

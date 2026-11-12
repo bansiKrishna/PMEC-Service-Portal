@@ -1,6 +1,7 @@
 package com.bonafide.controller;
 
 import com.bonafide.dto.BonafideApplicationResponseDto;
+import com.bonafide.dto.BonafideSummaryDto;
 import com.bonafide.dto.RejectBonafideRequestDto;
 import com.bonafide.service.BonafideService;
 import jakarta.validation.Valid;
@@ -20,10 +21,22 @@ public class DswBonafideController {
     private final BonafideService bonafideService;
 
     @GetMapping("/applications")
-    public ResponseEntity<List<BonafideApplicationResponseDto>> getApplications() {
+    public ResponseEntity<List<BonafideApplicationResponseDto>> getApplications(
+            @RequestParam(defaultValue = "PENDING") String status) {
         return ResponseEntity.ok(
-                bonafideService.getApplicationsForDsw()
+                bonafideService.getDswApplications(status)
         );
+    }
+
+    @GetMapping("/applications/summary")
+    public ResponseEntity<BonafideSummaryDto> getSummary() {
+        return ResponseEntity.ok(bonafideService.getDswSummary());
+    }
+
+    @GetMapping("/applications/{id}")
+    public ResponseEntity<BonafideApplicationResponseDto> getApplication(
+            @PathVariable Long id) {
+        return ResponseEntity.ok(bonafideService.getDswApplicationById(id));
     }
 
     @PostMapping({"/applications/{id}/approve", "/{id}/approve"})

@@ -6,6 +6,7 @@ import com.semesterRegistration.enums.RegistrationStatus;
 import org.springframework.data.jpa.repository.EntityGraph;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,6 +24,22 @@ public interface SemesterRegistrationRepository
 
     @EntityGraph(attributePaths = {"student", "branch"})
     List<SemesterRegistration> findByIdIn(Collection<Long> ids);
+
+    @EntityGraph(attributePaths = {"student", "branch"})
+    List<SemesterRegistration> findByStatusInOrderByUpdatedAtDesc(
+            Collection<RegistrationStatus> statuses,
+            Pageable pageable
+    );
+
+    @Query("""
+            select reg.status, count(reg)
+            from SemesterRegistration reg
+            where reg.status in :statuses
+            group by reg.status
+            """)
+    List<Object[]> countGroupedByStatus(
+            @Param("statuses") Collection<RegistrationStatus> statuses
+    );
 
     List<SemesterRegistration>
     findByStudent_IdAndBranch_IdOrderByCreatedAtDesc(

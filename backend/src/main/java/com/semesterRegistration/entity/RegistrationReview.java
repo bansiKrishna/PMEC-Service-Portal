@@ -11,7 +11,15 @@ import lombok.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "registration_reviews")
+@Table(
+        name = "registration_reviews",
+        indexes = {
+                @Index(name = "idx_review_reg_role",
+                        columnList = "registration_id, reviewer_role"),
+                @Index(name = "idx_review_role_decision",
+                        columnList = "reviewer_role, decision")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor

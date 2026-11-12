@@ -8,7 +8,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.mail.MailException;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Properties;
 
@@ -24,7 +26,8 @@ public class EmailServiceImpl implements EmailService {
 
     @Override
     public void sendOtpEmail(String toEmail, String otp) {
-        send(toEmail, "PMEC Student Service Portal - OTP Verification",
+        send(settingsService.getConfiguredSettings(), toEmail,
+                "PMEC Student Service Portal - OTP Verification",
                 "Your verification code is: " + otp + "\n\nThis code is valid for 5 minutes.");
     }
 
@@ -34,12 +37,16 @@ public class EmailServiceImpl implements EmailService {
         String recipient = recipientEmail == null || recipientEmail.isBlank()
                 ? settings.getGmailAddress()
                 : recipientEmail.trim();
-        send(recipient, "PMEC Student Service Portal - Test Email",
+        send(settings, recipient, "PMEC Student Service Portal - Test Email",
                 "Your email service settings are working correctly.");
     }
 
-    private void send(String toEmail, String subject, String body) {
-        EmailServiceSettings settings = settingsService.getConfiguredSettings();
+    private void send(
+            EmailServiceSettings settings,
+            String toEmail,
+            String subject,
+            String body
+    ) {
         JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
         mailSender.setHost(SMTP_HOST);
         mailSender.setPort(SMTP_PORT);
@@ -49,6 +56,9 @@ public class EmailServiceImpl implements EmailService {
         Properties mailProperties = mailSender.getJavaMailProperties();
         mailProperties.put("mail.smtp.auth", "true");
         mailProperties.put("mail.smtp.starttls.enable", "true");
+        mailProperties.put("mail.smtp.connectiontimeout", "10000");
+        mailProperties.put("mail.smtp.timeout", "10000");
+        mailProperties.put("mail.smtp.writetimeout", "10000");
 
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(settings.getGmailAddress());
@@ -58,7 +68,8 @@ public class EmailServiceImpl implements EmailService {
         try {
             mailSender.send(message);
         } catch (MailException exception) {
-            throw new IllegalStateException(
+            throw new ResponseStatusException(
+                    HttpStatus.SERVICE_UNAVAILABLE,
                     "Email could not be sent. Check the Gmail address and App Password."
             );
         }

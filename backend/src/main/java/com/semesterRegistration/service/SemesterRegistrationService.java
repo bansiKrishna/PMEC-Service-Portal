@@ -201,6 +201,26 @@ public class SemesterRegistrationService {
                     "Your account is not assigned to this registration's branch."
             );
         }
+        if (currentUser.getRole() == Role.LIBRARIAN
+                && (!reviewRepository.existsByRegistration_IdAndReviewerRole(
+                        registrationId,
+                        ReviewRole.LIBRARIAN
+                ) || registration.getStatus() == RegistrationStatus.DRAFT)) {
+            throw notFound("Registration not found.");
+        }
+        if (currentUser.getRole() == Role.DSW
+                && (!reviewRepository.existsByRegistration_IdAndReviewerRole(
+                        registrationId,
+                        ReviewRole.DSW
+                ) || registration.getStatus() == RegistrationStatus.DRAFT)) {
+            throw notFound("Registration not found.");
+        }
+        if (currentUser.getRole() == Role.PRINCIPAL
+                && (registration.getStatus() == RegistrationStatus.DRAFT
+                || registration.getStatus()
+                        == RegistrationStatus.DEPARTMENT_DRAFTED)) {
+            throw notFound("Registration not found.");
+        }
         return registration;
     }
 

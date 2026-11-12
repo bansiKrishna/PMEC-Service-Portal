@@ -38,6 +38,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Separator } from "@/components/ui/separator";
+import { dswApi } from "@/api/dswApi";
 
 type Application = {
   id: number | string;
@@ -77,7 +78,8 @@ function getDecision(status: string): Decision | string {
 
   if (
     value === "PRINCIPAL_APPROVED" ||
-    value === "APPROVED"
+    value === "APPROVED" ||
+    value === "CERTIFICATE_GENERATED"
   ) {
     return "APPROVED";
   }
@@ -131,46 +133,8 @@ export default function DswReviewHistoryPage() {
 
     async function loadHistory() {
       try {
-        setLoading(true);
         setError("");
-
-        const response = await fetch("/api/bonafide/dsw/history", {
-          credentials: "include",
-          headers: { Accept: "application/json" },
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          throw new Error(
-            `Unable to load review history (${response.status})`
-          );
-        }
-
-        const result: unknown = await response.json();
-
-        let records: Application[];
-
-        if (Array.isArray(result)) {
-          records = result as Application[];
-        } else if (
-          typeof result === "object" &&
-          result !== null &&
-          "content" in result &&
-          Array.isArray(result.content)
-        ) {
-          records = result.content as Application[];
-        } else if (
-          typeof result === "object" &&
-          result !== null &&
-          "data" in result &&
-          Array.isArray(result.data)
-        ) {
-          records = result.data as Application[];
-        } else {
-          throw new Error(
-            "Unexpected API response. Expected an array of applications."
-          );
-        }
+        const records = await dswApi.getReviewHistory();
 
         setApplications(
           records.filter((app) => {
@@ -184,8 +148,12 @@ export default function DswReviewHistoryPage() {
           })
         );
       } catch (err) {
-        if (err instanceof Error && err.name !== "AbortError") {
-          setError(err.message);
+        if (!controller.signal.aborted) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Unable to load review history."
+          );
         }
       } finally {
         if (!controller.signal.aborted) {

@@ -1,47 +1,86 @@
-import React from "react";
+import React, { lazy } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { AuthLayout } from "../layouts/AuthLayout";
 import { DashboardLayout } from "../layouts/DashboardLayout";
 import { ProtectedRoute } from "./ProtectedRoute";
 import { RoleGuard } from "./RoleGuard";
+import { PageSkeleton } from "../components/common/PageSkeleton";
 
 // Auth Pages
 import { LoginPage } from "../pages/auth/LoginPage";
 import { RegisterPage } from "../pages/auth/RegisterPage";
-import { UnauthorizedPage } from "../pages/auth/UnauthorizedPage";
 
-// Admin Pages
-import { AdminDashboard } from "../pages/admin/AdminDashboard";
-import { StaffManagementPage } from "../pages/admin/StaffManagementPage";
-import { CertificateTemplatesPage } from "../pages/admin/CertificateTemplatesPage";
-import { AdminSettingsPage } from "../pages/admin/AdminSettingsPage";
-import { EmailServiceSettingsPage } from "../pages/admin/EmailServiceSettingsPage";
-import SemesterRegistrationManagementPage from "../pages/admin/SemesterRegistrationManagementPage";
-
-// Student Pages
-import { StudentDashboard } from "../pages/student/StudentDashboard";
-import { ApplyBonafidePage } from "../pages/student/ApplyBonafidePage";
-import { StudentApplicationsPage } from "../pages/student/StudentApplicationsPage";
-import { ApplicationDetailsPage } from "../pages/student/ApplicationDetailsPage";
-import { StudentCertificatesPage } from "../pages/student/StudentCertificatesPage";
-import { StudentProfilePage } from "../pages/student/StudentProfilePage";
-import SemesterRegistrationPage from "../pages/student/SemesterRegistrationPage";
-import { SemesterRegistrationDetailsPage } from "../pages/student/SemesterRegistrationDetailsPage";
-
-// DSW Pages
-import { DswDashboard } from "../pages/dsw/DswDashboard";
-import { DswApplicationsPage } from "../pages/dsw/DswApplicationsPage";
-import { DswApplicationDetailsPage } from "../pages/dsw/DswApplicationDetailsPage";
-import DswReviewHistoryPage from "@/pages/dsw/DswReviewHistoryPage";
-
-// Principal Pages
-import { PrincipalDashboard } from "../pages/principal/PrincipalDashboard";
-import { PrincipalApplicationsPage } from "../pages/principal/PrincipalApplicationsPage";
-import { PrincipalApplicationDetailsPage } from "../pages/principal/PrincipalApplicationDetailsPage";
-
-// Librarian Pages
-import { LibrarianDashboard } from "../pages/librarian/LibrarianDashboard";
+const UnauthorizedPage = lazy(() =>
+  import("../pages/auth/UnauthorizedPage").then((m) => ({ default: m.UnauthorizedPage })),
+);
+const AdminDashboard = lazy(() =>
+  import("../pages/admin/AdminDashboard").then((m) => ({ default: m.AdminDashboard })),
+);
+const StaffManagementPage = lazy(() =>
+  import("../pages/admin/StaffManagementPage").then((m) => ({ default: m.StaffManagementPage })),
+);
+const CertificateTemplatesPage = lazy(() =>
+  import("../pages/admin/CertificateTemplatesPage").then((m) => ({ default: m.CertificateTemplatesPage })),
+);
+const AdminSettingsPage = lazy(() =>
+  import("../pages/admin/AdminSettingsPage").then((m) => ({ default: m.AdminSettingsPage })),
+);
+const EmailServiceSettingsPage = lazy(() =>
+  import("../pages/admin/EmailServiceSettingsPage").then((m) => ({ default: m.EmailServiceSettingsPage })),
+);
+const SemesterRegistrationManagementPage = lazy(() =>
+  import("../pages/admin/SemesterRegistrationManagementPage"),
+);
+const StudentDashboard = lazy(() =>
+  import("../pages/student/StudentDashboard").then((m) => ({ default: m.StudentDashboard })),
+);
+const ApplyBonafidePage = lazy(() =>
+  import("../pages/student/ApplyBonafidePage").then((m) => ({ default: m.ApplyBonafidePage })),
+);
+const StudentApplicationsPage = lazy(() =>
+  import("../pages/student/StudentApplicationsPage").then((m) => ({ default: m.StudentApplicationsPage })),
+);
+const ApplicationDetailsPage = lazy(() =>
+  import("../pages/student/ApplicationDetailsPage").then((m) => ({ default: m.ApplicationDetailsPage })),
+);
+const StudentCertificatesPage = lazy(() =>
+  import("../pages/student/StudentCertificatesPage").then((m) => ({ default: m.StudentCertificatesPage })),
+);
+const StudentProfilePage = lazy(() =>
+  import("../pages/student/StudentProfilePage").then((m) => ({ default: m.StudentProfilePage })),
+);
+const SemesterRegistrationPage = lazy(() =>
+  import("../pages/student/SemesterRegistrationPage"),
+);
+const SemesterRegistrationDetailsPage = lazy(() =>
+  import("../pages/student/SemesterRegistrationDetailsPage").then((m) => ({ default: m.SemesterRegistrationDetailsPage })),
+);
+const RegistrationReviewPage = lazy(() =>
+  import("../pages/semester-registration/RegistrationReviewPage").then((m) => ({ default: m.RegistrationReviewPage })),
+);
+const DswDashboard = lazy(() =>
+  import("../pages/dsw/DswDashboard").then((m) => ({ default: m.DswDashboard })),
+);
+const DswApplicationsPage = lazy(() =>
+  import("../pages/dsw/DswApplicationsPage").then((m) => ({ default: m.DswApplicationsPage })),
+);
+const DswApplicationDetailsPage = lazy(() =>
+  import("../pages/dsw/DswApplicationDetailsPage").then((m) => ({ default: m.DswApplicationDetailsPage })),
+);
+const DswReviewHistoryPage = lazy(() => import("../pages/dsw/DswReviewHistoryPage"));
+const PrincipalDashboard = lazy(() =>
+  import("../pages/principal/PrincipalDashboard").then((m) => ({ default: m.PrincipalDashboard })),
+);
+const PrincipalApplicationsPage = lazy(() =>
+  import("../pages/principal/PrincipalApplicationsPage").then((m) => ({ default: m.PrincipalApplicationsPage })),
+);
+const PrincipalApplicationDetailsPage = lazy(() =>
+  import("../pages/principal/PrincipalApplicationDetailsPage").then((m) => ({ default: m.PrincipalApplicationDetailsPage })),
+);
+const LibrarianDashboard = lazy(() =>
+  import("../pages/librarian/LibrarianDashboard").then((m) => ({ default: m.LibrarianDashboard })),
+);
 
 const RootRedirect: React.FC = () => {
   const { isAuthenticated, getDefaultRedirectPath } = useAuth();
@@ -53,6 +92,7 @@ const RootRedirect: React.FC = () => {
 
 export const AppRoutes: React.FC = () => {
   return (
+    <React.Suspense fallback={<PageSkeleton />}>
     <Routes>
       {/* Root redirect */}
       <Route path="/" element={<RootRedirect />} />
@@ -214,7 +254,22 @@ export const AppRoutes: React.FC = () => {
             </RoleGuard>
           }
         />
-        <Route path="/dsw/review-history" element={<DswReviewHistoryPage />} />
+        <Route
+          path="/dsw/review-history"
+          element={
+            <RoleGuard allowedRoles={["DSW"]}>
+              <DswReviewHistoryPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/dsw/registrations"
+          element={
+            <RoleGuard allowedRoles={["DSW"]}>
+              <RegistrationReviewPage />
+            </RoleGuard>
+          }
+        />
 
         {/* PRINCIPAL ROUTES */}
         <Route
@@ -241,6 +296,14 @@ export const AppRoutes: React.FC = () => {
             </RoleGuard>
           }
         />
+        <Route
+          path="/principal/registrations"
+          element={
+            <RoleGuard allowedRoles={["PRINCIPAL"]}>
+              <RegistrationReviewPage />
+            </RoleGuard>
+          }
+        />
 
         {/* LIBRARIAN ROUTES */}
         <Route
@@ -251,10 +314,27 @@ export const AppRoutes: React.FC = () => {
             </RoleGuard>
           }
         />
+        <Route
+          path="/librarian/applications"
+          element={
+            <RoleGuard allowedRoles={["LIBRARIAN"]}>
+              <RegistrationReviewPage />
+            </RoleGuard>
+          }
+        />
+        <Route
+          path="/librarian/review-history"
+          element={
+            <RoleGuard allowedRoles={["LIBRARIAN"]}>
+              <RegistrationReviewPage initialTab="ALL" />
+            </RoleGuard>
+          }
+        />
       </Route>
 
       {/* Fallback route */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </React.Suspense>
   );
 };

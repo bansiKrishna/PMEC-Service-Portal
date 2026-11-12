@@ -30,6 +30,11 @@ public interface RegistrationDocumentRepository
             DocumentType documentType
     );
 
+    java.util.Optional<RegistrationDocument> findByIdAndRegistration_Id(
+            Long documentId,
+            Long registrationId
+    );
+
     long countByRegistration_Id(Long registrationId);
 }
 

@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.dao.DataAccessException;
 
 import java.security.SecureRandom;
 import java.time.Duration;
@@ -94,10 +95,17 @@ public class OtpServiceImpl implements OtpService {
         );
         verification.setVerified(false);
 
-        // Send the email before saving the new OTP record.
-        emailService.sendOtpEmail(email, otp);
-
-        otpRepository.save(verification);
+        OtpVerification savedVerification = otpRepository.save(verification);
+        try {
+            emailService.sendOtpEmail(email, otp);
+        } catch (ResponseStatusException | IllegalStateException deliveryFailure) {
+            try {
+                otpRepository.delete(savedVerification);
+            } catch (DataAccessException cleanupFailure) {
+                deliveryFailure.addSuppressed(cleanupFailure);
+            }
+            throw deliveryFailure;
+        }
     }
 
     @Override

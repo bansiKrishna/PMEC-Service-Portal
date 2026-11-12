@@ -8,7 +8,15 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "bonafide_applications")
+@Table(
+        name = "bonafide_applications",
+        indexes = {
+                @Index(name = "idx_bonafide_status_updated",
+                        columnList = "status, updated_at"),
+                @Index(name = "idx_bonafide_student",
+                        columnList = "student_id")
+        }
+)
 @Getter
 @Setter
 @NoArgsConstructor

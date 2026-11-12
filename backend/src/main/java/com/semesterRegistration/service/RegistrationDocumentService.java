@@ -7,6 +7,7 @@ import com.semesterRegistration.entity.SemesterRegistration;
 import com.semesterRegistration.repository.RegistrationDocumentRepository;
 import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -91,15 +92,53 @@ public class RegistrationDocumentService {
             String authenticatedEmail,
             Long registrationId
     ) {
-        registrationService.getOwnedRegistration(
-                authenticatedEmail,
-                registrationId
+        registrationService.getRegistrationById(
+                registrationId,
+                authenticatedEmail
         );
         return documentRepository
                 .findByRegistration_IdOrderByUploadedAtDesc(registrationId)
                 .stream()
                 .map(RegistrationDocumentResponse::from)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public StoredDocument getDocument(
+            String authenticatedEmail,
+            Long registrationId,
+            Long documentId
+    ) {
+        registrationService.getRegistrationById(
+                registrationId,
+                authenticatedEmail
+        );
+        RegistrationDocument document = documentRepository
+                .findByIdAndRegistration_Id(documentId, registrationId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Document not found."
+                ));
+        try {
+            return new StoredDocument(
+                    storageService.read(document.getStoragePath()),
+                    MediaType.parseMediaType(document.getContentType()),
+                    document.getOriginalFileName()
+            );
+        } catch (IOException ex) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "The stored document is unavailable.",
+                    ex
+            );
+        }
+    }
+
+    public record StoredDocument(
+            byte[] content,
+            MediaType contentType,
+            String fileName
+    ) {
     }
 
     private String safeFileName(MultipartFile file) {

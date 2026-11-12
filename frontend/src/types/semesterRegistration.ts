@@ -76,6 +76,34 @@ export interface RegistrationDocument {
   uploadedAt: string;
 }
 
+export interface RegistrationReview {
+  id: number;
+  reviewerRole: 'LIBRARIAN' | 'DSW';
+  reviewerName: string | null;
+  decision: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVISION_REQUESTED';
+  comments: string | null;
+  reviewedAt: string | null;
+}
+
+export interface RegistrationReviewListItem {
+  id: number;
+  applicationNumber: string;
+  studentId: number;
+  studentName: string | null;
+  studentEmail: string;
+  rollNumber: string | null;
+  branchCode: string;
+  branchName: string;
+  academicYear: string;
+  semester: number;
+  section: string;
+  status: SemesterRegistrationStatus;
+  reviewDecision: 'PENDING' | 'APPROVED' | 'REJECTED' | 'REVISION_REQUESTED' | null;
+  reviewTab: 'PENDING' | 'APPROVED' | 'REJECTED';
+  submittedAt: string | null;
+  reviewedAt: string | null;
+}
+
 export interface RegistrationFees {
   collegeFeeDue: number | null;
   collegeFeePaid: number | null;

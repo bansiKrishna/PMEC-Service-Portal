@@ -8,13 +8,67 @@ import type {
   RegistrationDocument,
   RegistrationDocumentType,
   RegistrationFeeRequest,
+  RegistrationReview,
+  RegistrationReviewListItem,
   SemesterRegistration,
   SemesterRegistrationDetails,
 } from '../types/semesterRegistration';
+import type { ReviewTab, ReviewSummary } from '../types/review';
 
 const BASE_PATH = '/api/semester-registration';
 
 export const semesterRegistrationApi = {
+  getReviewList: async (status: ReviewTab): Promise<RegistrationReviewListItem[]> => {
+    const response = await apiClient.get<RegistrationReviewListItem[]>(
+      `${BASE_PATH}/reviews`,
+      { params: { status } },
+    );
+    return response.data;
+  },
+
+  getReviewSummary: async (): Promise<ReviewSummary> => {
+    const response = await apiClient.get<ReviewSummary>(
+      `${BASE_PATH}/reviews/summary`,
+    );
+    return response.data;
+  },
+
+  getPendingReviews: async (): Promise<SemesterRegistration[]> => {
+    const response = await apiClient.get<SemesterRegistration[]>(
+      `${BASE_PATH}/reviews/pending`,
+    );
+    return response.data;
+  },
+
+  getReviewHistory: async (): Promise<SemesterRegistration[]> => {
+    const response = await apiClient.get<SemesterRegistration[]>(
+      `${BASE_PATH}/reviews/history`,
+    );
+    return response.data;
+  },
+
+  submitReview: async (
+    registrationId: number,
+    decision: 'APPROVED' | 'REJECTED' | 'REVISION_REQUESTED',
+    comments?: string,
+  ): Promise<void> => {
+    await apiClient.post(
+      `${BASE_PATH}/applications/${registrationId}/review`,
+      { decision, comments },
+    );
+  },
+
+  getDocumentContent: async (
+    registrationId: number,
+    documentId: number,
+  ): Promise<Blob> => {
+    const response = await apiClient.get<Blob>(
+      `${BASE_PATH}/applications/${registrationId}/documents/${documentId}/content`,
+      { responseType: 'blob' },
+    );
+    return response.data;
+  },
+
   getBranches: async (): Promise<AcademicBranch[]> => {
     const response = await apiClient.get<AcademicBranch[]>(
       `${BASE_PATH}/branches`,
@@ -58,6 +112,15 @@ export const semesterRegistrationApi = {
   getRegistration: async (registrationId: number): Promise<SemesterRegistration> => {
     const response = await apiClient.get<SemesterRegistration>(
       `${BASE_PATH}/applications/${registrationId}`,
+    );
+    return response.data;
+  },
+
+  getApplicationReviewHistory: async (
+    registrationId: number,
+  ): Promise<RegistrationReview[]> => {
+    const response = await apiClient.get<RegistrationReview[]>(
+      `${BASE_PATH}/applications/${registrationId}/review-history`,
     );
     return response.data;
   },

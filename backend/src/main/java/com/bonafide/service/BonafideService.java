@@ -22,7 +22,20 @@ public interface BonafideService {
     List<BonafideApplicationResponseDto>
     getPendingForDsw();
 
+    List<BonafideApplicationResponseDto>
+    getDswReviewHistory();
+
     BonafideApplicationResponseDto getDswApplicationById(Long id);
+
+    List<BonafideApplicationResponseDto> getDswApplications(String tab);
+
+    BonafideSummaryDto getDswSummary();
+
+    List<BonafideApplicationResponseDto> getPrincipalApplications(String tab);
+
+    BonafideSummaryDto getPrincipalSummary();
+
+    BonafideApplicationResponseDto getPrincipalApplicationById(Long id);
 
     List<BonafideApplicationResponseDto>
     getPendingForPrincipal();

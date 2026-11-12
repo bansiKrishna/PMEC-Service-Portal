@@ -244,10 +244,27 @@ This document maps all REST endpoints exposed by the Java Spring Boot backend (`
 
 ### Get DSW Applications List
 - **Method**: `GET`
-- **Endpoint**: `/api/dsw/bonafide/applications` (or `/api/bonafide/dsw/pending`)
+- **Endpoint**: `/api/dsw/bonafide/applications?status=ALL|PENDING|APPROVED|REJECTED` (default `PENDING`)
 - **Access**: `ROLE_DSW`
-- **Response**: `List<BonafideApplicationResponseDto>`
-- **Purpose**: DSW views pending applications requiring review.
+- **Response**: Up to 1,000 `BonafideApplicationResponseDto` rows, newest updated first.
+- **Purpose**: DSW views applications by the DSW workflow stage.
+
+### DSW Application Summary and Details
+- **Method**: `GET`
+- **Endpoints**: `/api/dsw/bonafide/applications/summary`, `/api/dsw/bonafide/applications/{id}`
+- **Access**: `ROLE_DSW`
+- **Response**: Summary `{ pending, approved, rejected, total }` or one application DTO.
+
+Bonafide list status grouping is server-owned:
+
+| Tab | DSW statuses | Principal statuses |
+|---|---|---|
+| Pending | `SUBMITTED`, `PENDING_DSW` | `PENDING_PRINCIPAL`, `DSW_APPROVED` |
+| Approved | `DSW_APPROVED`, `PENDING_PRINCIPAL`, `PRINCIPAL_APPROVED`, `PRINCIPAL_REJECTED`, `CERTIFICATE_GENERATED` | `PRINCIPAL_APPROVED`, `CERTIFICATE_GENERATED` |
+| Rejected | `DSW_REJECTED` | `PRINCIPAL_REJECTED` |
+| All | Union of the three tabs | Union of the three tabs |
+
+`DRAFT` is excluded. Principal lists contain only applications that reached the Principal stage. The status field remains the overall application status.
 
 ### DSW Approve Application
 - **Method**: `POST`
@@ -275,10 +292,16 @@ This document maps all REST endpoints exposed by the Java Spring Boot backend (`
 
 ### Get Principal Forwarded Applications
 - **Method**: `GET`
-- **Endpoint**: `/api/principal/bonafide/applications` (or `/api/bonafide/principal/pending`)
+- **Endpoint**: `/api/principal/bonafide/applications?status=ALL|PENDING|APPROVED|REJECTED` (default `PENDING`)
 - **Access**: `ROLE_PRINCIPAL`
-- **Response**: `List<BonafideApplicationResponseDto>`
+- **Response**: Up to 1,000 `BonafideApplicationResponseDto` rows, newest updated first.
 - **Purpose**: Principal views applications approved by DSW.
+
+### Principal Application Summary and Details
+- **Method**: `GET`
+- **Endpoints**: `/api/principal/bonafide/applications/summary`, `/api/principal/bonafide/applications/{id}`
+- **Access**: `ROLE_PRINCIPAL`
+- **Response**: Summary `{ pending, approved, rejected, total }` or one application DTO.
 
 ### Principal Approve Application
 - **Method**: `POST`
@@ -302,6 +325,23 @@ This document maps all REST endpoints exposed by the Java Spring Boot backend (`
 
 ---
 
-## 7. Librarian Endpoints (`/api/library/...`)
+## 7. Semester Registration Review (`/api/semester-registration`)
+
+### Review list and summary
+- **Method**: `GET`
+- **Endpoints**: `/reviews?status=ALL|PENDING|APPROVED|REJECTED` (default `PENDING`), `/reviews/summary`
+- **Access**: `ROLE_LIBRARIAN`, `ROLE_DSW`, `ROLE_PRINCIPAL`
+- **Response**: Up to 1,000 lightweight review rows, or summary `{ pending, approved, rejected, total }`.
+
+Librarian and DSW tabs reflect that reviewer's latest decision: `APPROVED` maps to Approved; `REJECTED` and `REVISION_REQUESTED` map to Rejected / Revision requested; `PENDING` is Pending only while the overall status is `SUBMITTED` or `UNDER_REVIEW`. Principal tabs use overall status (`SUBMITTED` / `UNDER_REVIEW`, `APPROVED`, or `REVISION_REQUIRED`) and are read-only.
+
+### Registration detail and documents
+- **Methods**: `GET`
+- **Endpoints**: `/applications/{id}`, `/applications/{id}/review-history`, `/applications/{id}/documents`, `/applications/{id}/documents/{documentId}/content`
+- **Access**: Existing student/staff access plus `ROLE_PRINCIPAL` for read-only oversight. Principal cannot submit a review.
+
+Legacy reviewer endpoints `/reviews/pending` and `/reviews/history` remain available to Librarian and DSW.
+
+## 8. Librarian Endpoints (`/api/library/...`)
 
 - Reserved for future Library module extensions. Protected for `ROLE_LIBRARIAN`.

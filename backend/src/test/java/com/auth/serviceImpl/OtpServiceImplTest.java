@@ -14,6 +14,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
@@ -26,6 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -78,6 +80,42 @@ class OtpServiceImplTest {
                         LocalDateTime.now().plusMinutes(6)
                 )
         );
+    }
+
+    @Test
+    void doesNotAttemptEmailWhenOtpCannotBePersisted() {
+        when(emailValidationService.isCollegeEmail("student@pmec.ac.in"))
+                .thenReturn(true);
+        when(otpRepository.save(any()))
+                .thenThrow(new DataIntegrityViolationException("database unavailable"));
+
+        assertThrows(
+                DataIntegrityViolationException.class,
+                () -> otpService.generateAndSendOtp("student@pmec.ac.in")
+        );
+
+        verify(emailService, never()).sendOtpEmail(any(), any());
+    }
+
+    @Test
+    void removesPersistedOtpWhenEmailDeliveryFails() {
+        when(emailValidationService.isCollegeEmail("student@pmec.ac.in"))
+                .thenReturn(true);
+        OtpVerification savedVerification = new OtpVerification();
+        savedVerification.setId(17L);
+        when(otpRepository.save(any())).thenReturn(savedVerification);
+        doThrow(new ResponseStatusException(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Email could not be sent."
+        )).when(emailService).sendOtpEmail(any(), any());
+
+        ResponseStatusException exception = assertThrows(
+                ResponseStatusException.class,
+                () -> otpService.generateAndSendOtp("student@pmec.ac.in")
+        );
+
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, exception.getStatusCode());
+        verify(otpRepository).delete(savedVerification);
     }
 
     @Test

@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { ArrowLeft, CheckCircle2, XCircle, User, AlertTriangle, RefreshCw } from 'lucide-react';
 import { principalApi } from '../../api/principalApi';
-import { studentApi } from '../../api/studentApi';
 import type { BonafideApplicationResponseDto } from '../../types/bonafide';
 import { Card, CardHeader, CardTitle, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
@@ -34,7 +33,7 @@ export const PrincipalApplicationDetailsPage: React.FC = () => {
     if (!id) return;
     setLoading(true);
     try {
-      const data = await studentApi.getApplicationById(Number(id));
+      const data = await principalApi.getApplicationById(Number(id));
       setApp(data);
     } catch (err) {
       console.error('Error fetching details:', err);

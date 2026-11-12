@@ -3,13 +3,29 @@ import type {
   BonafideApplicationResponseDto,
   RejectBonafideRequestDto,
 } from '../types/bonafide';
+import type { ReviewTab, ReviewSummary } from '../types/review';
 
 export const principalApi = {
   getPendingApplications: async (): Promise<BonafideApplicationResponseDto[]> => {
     const response = await apiClient.get<BonafideApplicationResponseDto[]>(
-      '/api/bonafide/principal/pending'
+      '/api/principal/bonafide/applications',
+      { params: { status: 'PENDING' } },
     );
+    return response.data;
+  },
 
+  getApplications: async (status: ReviewTab): Promise<BonafideApplicationResponseDto[]> => {
+    const response = await apiClient.get<BonafideApplicationResponseDto[]>(
+      '/api/principal/bonafide/applications',
+      { params: { status } },
+    );
+    return response.data;
+  },
+
+  getSummary: async (): Promise<ReviewSummary> => {
+    const response = await apiClient.get<ReviewSummary>(
+      '/api/principal/bonafide/applications/summary',
+    );
     return response.data;
   },
 
@@ -17,7 +33,7 @@ export const principalApi = {
     id: number
   ): Promise<BonafideApplicationResponseDto> => {
     const response = await apiClient.get<BonafideApplicationResponseDto>(
-      `/api/bonafide/principal/${id}`
+      `/api/principal/bonafide/applications/${id}`
     );
 
     return response.data;
@@ -26,8 +42,8 @@ export const principalApi = {
   approveApplication: async (
     id: number
   ): Promise<void> => {
-    await apiClient.put(
-      `/api/bonafide/principal/${id}/approve`
+    await apiClient.post(
+      `/api/principal/bonafide/applications/${id}/approve`
     );
   },
 
@@ -35,8 +51,8 @@ export const principalApi = {
     id: number,
     data: RejectBonafideRequestDto
   ): Promise<void> => {
-    await apiClient.put(
-      `/api/bonafide/principal/${id}/reject`,
+    await apiClient.post(
+      `/api/principal/bonafide/applications/${id}/reject`,
       data
     );
   },
