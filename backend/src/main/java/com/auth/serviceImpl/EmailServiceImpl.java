@@ -1,5 +1,6 @@
 package com.auth.serviceImpl;
 
+import lombok.extern.slf4j.Slf4j;   
 import com.admin.entity.EmailServiceSettings;
 import com.admin.service.EmailCredentialEncryptionService;
 import com.admin.service.EmailServiceSettingsService;
@@ -15,6 +16,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.Properties;
 
 @Service
+@Slf4j
 @RequiredArgsConstructor
 public class EmailServiceImpl implements EmailService {
 
@@ -41,37 +43,57 @@ public class EmailServiceImpl implements EmailService {
                 "Your email service settings are working correctly.");
     }
 
-    private void send(
-            EmailServiceSettings settings,
-            String toEmail,
-            String subject,
-            String body
-    ) {
-        JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
-        mailSender.setHost(SMTP_HOST);
-        mailSender.setPort(SMTP_PORT);
-        mailSender.setUsername(settings.getGmailAddress());
-        mailSender.setPassword(credentialEncryptionService.decrypt(settings.getEncryptedAppPassword()));
+    
+private void send(
+        EmailServiceSettings settings,
+        String toEmail,
+        String subject,
+        String body
+) {
+    JavaMailSenderImpl mailSender = new JavaMailSenderImpl();
+    mailSender.setHost(SMTP_HOST);
+    mailSender.setPort(SMTP_PORT);
+    mailSender.setUsername(settings.getGmailAddress());
 
-        Properties mailProperties = mailSender.getJavaMailProperties();
-        mailProperties.put("mail.smtp.auth", "true");
-        mailProperties.put("mail.smtp.starttls.enable", "true");
-        mailProperties.put("mail.smtp.connectiontimeout", "10000");
-        mailProperties.put("mail.smtp.timeout", "10000");
-        mailProperties.put("mail.smtp.writetimeout", "10000");
+    String appPassword;
 
-        SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom(settings.getGmailAddress());
-        message.setTo(toEmail);
-        message.setSubject(subject);
-        message.setText(body);
-        try {
-            mailSender.send(message);
-        } catch (MailException exception) {
-            throw new ResponseStatusException(
-                    HttpStatus.SERVICE_UNAVAILABLE,
-                    "Email could not be sent. Check the Gmail address and App Password."
-            );
-        }
+    try {
+        appPassword = credentialEncryptionService.decrypt(
+                settings.getEncryptedAppPassword()
+        );
+    } catch (RuntimeException exception) {
+        log.error(
+                "Failed to decrypt saved Gmail credentials. Check EMAIL_SETTINGS_ENCRYPTION_KEY and re-save email settings.",
+                exception
+        );
+        throw exception;
     }
+
+    mailSender.setPassword(appPassword);
+
+    Properties mailProperties = mailSender.getJavaMailProperties();
+    mailProperties.put("mail.smtp.auth", "true");
+    mailProperties.put("mail.smtp.starttls.enable", "true");
+    mailProperties.put("mail.smtp.connectiontimeout", "10000");
+    mailProperties.put("mail.smtp.timeout", "10000");
+    mailProperties.put("mail.smtp.writetimeout", "10000");
+
+    SimpleMailMessage message = new SimpleMailMessage();
+    message.setFrom(settings.getGmailAddress());
+    message.setTo(toEmail);
+    message.setSubject(subject);
+    message.setText(body);
+
+    try {
+        mailSender.send(message);
+    } catch (MailException exception) {
+        log.error("Gmail SMTP email delivery failed.", exception);
+
+        throw new ResponseStatusException(
+                HttpStatus.SERVICE_UNAVAILABLE,
+                "Email could not be sent. Check Gmail credentials and SMTP connectivity."
+        );
+    }
+}
+
 }
